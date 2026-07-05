@@ -10,7 +10,7 @@ class PythonAnalysis(Analysis):
     # TODO: Also test edge cases of this (python code fails with various reasons...)
 
     def __init__(self, analysis_id: str, python_code: str) -> None:
-        self.analysis_id = analysis_id
+        super().__init__(analysis_id)
         self.python_code = python_code
 
     def __repr__(self) -> str:
@@ -19,8 +19,12 @@ class PythonAnalysis(Analysis):
     def get_type_id(self) -> str:
         return "python"
 
-    def get_analysis_id(self) -> str:
-        return self.analysis_id
+    def serialize(self) -> dict:
+        return {"python_code": self.python_code}
+
+    @classmethod
+    def deserialize(cls, analysis_id: str, params: dict) -> "PythonAnalysis":
+        return cls(analysis_id, params["python_code"])
 
     def run(self, inp: AnalysisInput) -> AnalysisOutput:
         try:
