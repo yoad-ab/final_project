@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from .analysis import Analysis
+from ..core.analysis import Analysis
 
 
 class ArtifactManager(object):
