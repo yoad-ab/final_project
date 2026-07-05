@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 
+type ObjectHash = str
+
 
 class AnalysisCompletionStatus(Enum):
     # I made this an enum because we might want to represent in the feature
@@ -18,11 +20,13 @@ class AnalysisOutput(object):
         returned_object: object,
         analysis: "Analysis",
         analysis_input: "AnalysisInput | None",
+        object_hash: "ObjectHash | None" = None,
     ) -> None:
         self.status = status
         self.returned_object = returned_object
         self.analysis = analysis
         self.analysis_input = analysis_input
+        self.object_hash = object_hash
 
     def __repr__(self) -> str:
         return f"AnalysisOutput(status={self.status!r}, returned_object={self.returned_object!r}, analysis={self.analysis!r}, analysis_input={self.analysis_input!r})"
@@ -62,6 +66,14 @@ class AnalysisInput(object):
 class Analysis(ABC):
     @abstractmethod
     def run(self, inp: AnalysisInput) -> AnalysisOutput:
+        pass
+
+    @abstractmethod
+    def get_hash(self) -> str:
+        """
+        Returns a stable hash of the analysis definition (not a run).
+        Same definition → same hash; any change → different hash.
+        """
         pass
 
     @abstractmethod

@@ -1,3 +1,4 @@
+import hashlib
 from traceback import print_exc
 
 from .analysis import Analysis, AnalysisCompletionStatus, AnalysisInput, AnalysisOutput
@@ -20,6 +21,9 @@ class PythonAnalysis(Analysis):
         if len(self.python_code) > 50:
             code_snippet += "..."
         return f"PythonAnalysis({code_snippet})"
+
+    def get_hash(self) -> str:
+        return hashlib.sha256(self.python_code.encode()).hexdigest()
 
     def get_type_id(self) -> str:
         return "python"

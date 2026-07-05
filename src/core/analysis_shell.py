@@ -1,3 +1,5 @@
+import hashlib
+
 from .analysis import Analysis, AnalysisInput, AnalysisOutput
 
 
@@ -10,6 +12,9 @@ class ShellAnalysis(Analysis):
 
     def __str__(self) -> str:
         return f"ShellAnalysis({self.shell_command})"
+
+    def get_hash(self) -> str:
+        return hashlib.sha256(self.shell_command.encode()).hexdigest()
 
     def get_type_id(self) -> str:
         return "shell"
