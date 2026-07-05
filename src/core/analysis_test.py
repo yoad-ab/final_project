@@ -13,7 +13,7 @@ python_analysis_2 = PythonAnalysis("hello_world_2", """
 print("hello world 2")
 """)
 
-recipe = Recipe([python_analysis, python_analysis_2])
+recipe = Recipe("hello_world_recipe", [python_analysis, python_analysis_2])
 
 artifact_manager = ArtifactManager(Path("./data/"))
 executor = AnalysisExecutor(artifact_manager)
