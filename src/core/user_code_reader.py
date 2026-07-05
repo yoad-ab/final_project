@@ -104,35 +104,13 @@ def create_user_code_file(code_text: str, file_path: pathlib.Path) -> str:
         raise IOError(f"File Error: {e}")
     return f_name
 
-def process_and_run_with_venv(code_text: str, file_path: pathlib.Path, venv_path: pathlib.Path) -> bool:
-    """
-    Validates syntax, sets up a local venv, installs missing dependencies, 
-    and dynamically loads the user code.
-
-    Parameters
-    ----------
-    code_text : str
-        The raw Python code string provided by the user via the GUI.
-    file_path : pathlib.Path
-        The destination path where the valid code should be saved.
-    venv_path : pathlib.Path
-        The path where the local virtual environment should be created.
-
-    Returns
-    -------
-    success : bool
-        True if the execution and loading were successful, False otherwise.
-    """
-    # Step 1: Validate syntax before doing anything else
-    f_name = create_user_code_file(code_text, file_path)
-
-
-    # Step 3: Ensure virtual environment exists
+def create_venv(venv_path: pathlib.Path) -> None:
     if not venv_path.exists():
         # TODO: Update GUI here -> "Creating virtual environment, please wait..."
         print("Creating virtual environment...") 
         venv.create(venv_path, with_pip=True)
 
+def init_venv(venv_path: pathlib.Path, file_path: pathlib.Path) -> None:
     # Resolve venv paths
     python_exe, site_packages = get_venv_paths(venv_path)
 
@@ -177,4 +155,26 @@ def process_and_run_with_venv(code_text: str, file_path: pathlib.Path, venv_path
     except Exception as e:
         raise RuntimeError(f"Unexpected error: {e}")
 
-    return True
+def process_and_run_with_venv(code_text: str, file_path: pathlib.Path, venv_path: pathlib.Path) -> None:
+    """
+    Validates syntax, sets up a local venv, installs missing dependencies, 
+    and dynamically loads the user code.
+
+    Parameters
+    ----------
+    code_text : str
+        The raw Python code string provided by the user via the GUI.
+    file_path : pathlib.Path
+        The destination path where the valid code should be saved.
+    venv_path : pathlib.Path
+        The path where the local virtual environment should be created.
+    """
+    # Step 1: Validate syntax before doing anything else
+    f_name = create_user_code_file(code_text, file_path)
+
+
+    # Step 2: Ensure virtual environment exists
+    create_venv(venv_path)
+    
+    # Step 3: Get paths to the Python executable and site-packages in the venv
+    init_venv(venv_path, file_path)
