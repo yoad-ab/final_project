@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
+import user_code_reader as UCR
+import pathlib
 
 class AnalysisApp:
     def __init__(self, root: tk.Tk) -> None:
@@ -90,7 +92,7 @@ class AnalysisApp:
         # 3. Submit button at the bottom
         self.submit_btn = tk.Button(
             self.root, 
-            text="Save Text / Code", 
+            text="Save Code", 
             command=self.save_text_content,
             bg="#4CAF50",
             fg="white",
@@ -153,9 +155,19 @@ class AnalysisApp:
     def save_text_content(self) -> None:
         """Saves the text from the textbox object into a string variable."""
         self.saved_code_text = self.textbox.get("1.0", tk.END).strip()
+        try:
+            
+            UCR.process_and_run_with_venv(self.saved_code_text, pathlib.Path("user_code.py"), pathlib.Path("venv"))
+
+        except SyntaxError as e:
+            messagebox.showerror("Error", f"Syntax error in the code:\n{e}")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred while saving the code:\n{e}")
+        
         messagebox.showinfo(
-            "Save Successful", 
-            f"The text has been saved. In addition, the analysis execution order is:\n{self.selected_analyses}"
+            "Save Successful",
+            f"The code has been saved. In addition, the analysis execution order is:\n{self.selected_analyses}"
         )
 
     def open_analysis_window(self) -> None:
