@@ -15,8 +15,12 @@ class ArtifactManager(object):
         """
 
         # Does this work with "/" entries in data_id?
-        return self.base_path / "raw_data" / experiment_id / data_id
+        path = self.base_path / "raw_data" / experiment_id / data_id
+        if not path.exists():
+            raise FileNotFoundError(f"Raw data directory not found: {path}")
+        return path
 
     def get_analysis_output_directory(self, analysis: Analysis) -> Path:
-        # Whatever, uninteresting for now, we'll implement this later
-        return self.base_path / "output_data" / analysis.get_analysis_id()
+        path = self.base_path / "output_data" / analysis.get_analysis_id()
+        path.mkdir(parents=True, exist_ok=True)
+        return path
