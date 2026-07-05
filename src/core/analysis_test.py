@@ -5,11 +5,11 @@ from .analysis_runner import AnalysisExecutor
 from .artifacts import ArtifactManager
 from .recipe import Recipe
 
-python_analysis = PythonAnalysis("""
+python_analysis = PythonAnalysis("hello_world", """
 print("hello world")
 """)
 
-python_analysis_2 = PythonAnalysis("""
+python_analysis_2 = PythonAnalysis("hello_world_2", """
 print("hello world 2")
 """)
 

@@ -9,23 +9,18 @@ class PythonAnalysis(Analysis):
     #
     # TODO: Also test edge cases of this (python code fails with various reasons...)
 
-    def __init__(self, python_code: str) -> None:
+    def __init__(self, analysis_id: str, python_code: str) -> None:
+        self.analysis_id = analysis_id
         self.python_code = python_code
 
     def __repr__(self) -> str:
-        return f"PythonAnalysis(python_code={self.python_code!r})"
-
-    def __str__(self) -> str:
-        code_snippet = self.python_code[:50].replace("\n", " ")
-        if len(self.python_code) > 50:
-            code_snippet += "..."
-        return f"PythonAnalysis({code_snippet})"
+        return f"PythonAnalysis(analysis_id={self.analysis_id!r}, python_code={self.python_code!r})"
 
     def get_type_id(self) -> str:
         return "python"
 
     def get_analysis_id(self) -> str:
-        return "generic_python_analysis"
+        return self.analysis_id
 
     def run(self, inp: AnalysisInput) -> AnalysisOutput:
         try:
