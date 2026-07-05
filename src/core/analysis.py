@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
-from traceback import print_exc
-from typing import override
 
 
 class AnalysisCompletionStatus(Enum):
@@ -19,7 +17,7 @@ class AnalysisOutput(object):
         status: AnalysisCompletionStatus,
         returned_object: object,
         analysis: "Analysis",
-        analysis_input: "AnalysisInput",
+        analysis_input: "AnalysisInput | None",
     ) -> None:
         self.status = status
         self.returned_object = returned_object
@@ -47,7 +45,10 @@ class AnalysisInput(object):
         self.parent_output = parent_output
 
     def to_output(
-        self, status: AnalysisCompletionStatus, returned_object: object, analysis: "Analysis"
+        self,
+        status: AnalysisCompletionStatus,
+        returned_object: object,
+        analysis: "Analysis",
     ) -> AnalysisOutput:
         return AnalysisOutput(status, returned_object, analysis, self)
 
@@ -82,62 +83,3 @@ class Analysis(ABC):
 
     def __str__(self) -> str:
         return self.__class__.__name__
-
-
-class PythonAnalysis(Analysis):
-    # Just a sample of what this class should be, we should reimplement it
-    # to properly run the code in the directory and stuff
-    #
-    # TODO: Also test edge cases of this (python code fails with various reasons...)
-
-    def __init__(self, python_code: str) -> None:
-        self.python_code = python_code
-
-    def __repr__(self) -> str:
-        return f"PythonAnalysis(python_code={self.python_code!r})"
-
-    def __str__(self) -> str:
-        code_snippet = self.python_code[:50].replace("\n", " ")
-        if len(self.python_code) > 50:
-            code_snippet += "..."
-        return f"PythonAnalysis({code_snippet})"
-
-    @override
-    def get_type_id(self) -> str:
-        return "python"
-
-    @override
-    def get_analysis_id(self) -> str:
-        return "generic_python_analysis"
-
-    @override
-    def run(self, inp: AnalysisInput) -> AnalysisOutput:
-        try:
-            returned_object = eval(self.python_code)
-            return inp.to_output(AnalysisCompletionStatus.SUCCESS, returned_object, self)
-        except BaseException as be:
-            print("[-] (temp log) exception happened in Python analysis", be)
-            print_exc()
-            return inp.to_output(AnalysisCompletionStatus.FAILURE, None, self)
-
-
-class ArtifactManager(object):
-    def __init__(self, base_path: Path) -> None:
-        self.base_path = base_path
-
-    def get_raw_data_directory(self, experiment_id: str, data_id: str) -> Path:
-        """
-        I still don't know what the format exactly is going to be so for now let's say experiment id is something
-        lower case e.g. "mri_exp_1" or something, and for extra caution and for supporting future abilities for nesting
-        data directories (hierarchical organization) we'll assume that data_id may contain "/" characters
-        """
-
-        # Does this work with "/" entries in data_id?
-        return self.base_path / "raw_data" / experiment_id / data_id
-
-    def get_analysis_output_directory(self, previous_output: AnalysisOutput) -> Path:
-        return self.base_path / "output_data" / previous_output.analysis.get_analysis_id()
-
-
-class AnalysisExecutor(object):
-    pass
