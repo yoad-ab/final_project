@@ -158,6 +158,11 @@ class AnalysisApp:
         try:
             
             UCR.process_and_run_with_venv(self.saved_code_text, pathlib.Path("user_code.py"), pathlib.Path("venv"))
+            
+            messagebox.showinfo(
+            "Save Successful",
+            f"The code has been saved."
+            )
 
         except SyntaxError as e:
             messagebox.showerror("Error", f"Syntax error in the code:\n{e}")
@@ -165,10 +170,7 @@ class AnalysisApp:
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred while saving the code:\n{e}")
         
-        messagebox.showinfo(
-            "Save Successful",
-            f"The code has been saved. In addition, the analysis execution order is:\n{self.selected_analyses}"
-        )
+        
 
     def open_analysis_window(self) -> None:
         """Opens a secondary window to select analyses from a predefined list."""
