@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 from traceback import print_exc
-from typing import override
 
 
 class AnalysisCompletionStatus(Enum):
@@ -47,7 +46,10 @@ class AnalysisInput(object):
         self.parent_output = parent_output
 
     def to_output(
-        self, status: AnalysisCompletionStatus, returned_object: object, analysis: "Analysis"
+        self,
+        status: AnalysisCompletionStatus,
+        returned_object: object,
+        analysis: "Analysis",
     ) -> AnalysisOutput:
         return AnalysisOutput(status, returned_object, analysis, self)
 
@@ -102,15 +104,12 @@ class PythonAnalysis(Analysis):
             code_snippet += "..."
         return f"PythonAnalysis({code_snippet})"
 
-    @override
     def get_type_id(self) -> str:
         return "python"
 
-    @override
     def get_analysis_id(self) -> str:
         return "generic_python_analysis"
 
-    @override
     def run(self, inp: AnalysisInput) -> AnalysisOutput:
         try:
             returned_object = eval(self.python_code)
@@ -135,9 +134,20 @@ class ArtifactManager(object):
         # Does this work with "/" entries in data_id?
         return self.base_path / "raw_data" / experiment_id / data_id
 
-    def get_analysis_output_directory(self, previous_output: AnalysisOutput) -> Path:
-        return self.base_path / "output_data" / previous_output.analysis.get_analysis_id()
+    def get_analysis_output_directory(self, analysis: Analysis) -> Path:
+        # Whatever, uninteresting for now, we'll implement this later
+        return self.base_path / "output_data" / analysis.get_analysis_id()
 
 
 class AnalysisExecutor(object):
-    pass
+    def __init__(self, artifact_manager: ArtifactManager) -> None:
+        self.artifact_manager = artifact_manager
+
+    def run_analysis_on_data(self, analysis: Analysis, experiment_id: str, data_id: str) -> AnalysisOutput:
+        raw_data_dir = self.artifact_manager.get_raw_data_directory(experiment_id, data_id)
+        output_dir = self.artifact_manager.get_analysis_output_directory(analysis)
+
+        analysis_input = AnalysisInput(raw_data_dir, output_dir, None, None)
+        analysis_output = analysis.run(analysis_input)
+
+        return analysis_output
