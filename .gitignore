@@ -1,11 +1,9 @@
 __pycache__/
-<<<<<<< HEAD
 try.py/
 data/
 docs/
 venv/
-=======
 
-data/
-docs/
->>>>>>> 4b77e80d18bc1c621b28dbe2d65901c055ff9da0
+
+run_history.log
+run_registry.csv

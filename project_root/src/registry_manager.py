@@ -27,7 +27,7 @@ def generate_run_id(registry_file="run_registry.csv"):
     if len(reader) == 0:
         return "001"
 
-    last_run_id = int(reader[-1]["Run ID"])
+    last_run_id = int(reader[-1]["run_id"])
     return str(last_run_id + 1)
 
 

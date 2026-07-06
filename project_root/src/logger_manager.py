@@ -3,29 +3,29 @@ from datetime import datetime
 import os
 
 
-def create_run_folder(run_id, runs_dir="runs"):
-    """
-    Create a folder for the current run.
-
-    Parameters
-    ----------
-    run_id : str
-        Unique ID of the current run.
-
-    runs_dir : str
-        Directory where all runs are stored.
-
-    Returns
-    -------
-    str
-        Path to the created run folder.
-    """
-
-    run_folder = os.path.join(runs_dir, f"run_{run_id}")
-
-    os.makedirs(run_folder, exist_ok=True)
-
-    return run_folder
+#def create_run_folder(run_id, runs_dir="runs"):
+#    """
+#    Create a folder for the current run.
+#
+#    Parameters
+#    ----------
+#    run_id : str
+#        Unique ID of the current run.
+#
+#    runs_dir : str
+#        Directory where all runs are stored.
+#
+#    Returns
+#    -------
+#    str
+#        Path to the created run folder.
+#    """
+#
+#    run_folder = os.path.join(runs_dir, f"run_{run_id}")
+#
+#    os.makedirs(run_folder, exist_ok=True)
+#
+#    return run_folder
 
 
 def setup_logger(run_folder):
