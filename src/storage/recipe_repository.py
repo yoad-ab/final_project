@@ -57,12 +57,12 @@ class RecipeRepository:
             raise FileNotFoundError(f"Recipe not found: {recipe_id!r}")
         path.unlink()
 
-    def list(self) -> list[str]:
+    def list(self):
         if not self._dir().exists():
             return []
         return sorted(p.stem for p in self._dir().glob("*.json"))
 
-    def list_analysis_ids(self, recipe_id: str) -> list[str]:
+    def list_analysis_ids(self, recipe_id: str):
         """Return the stored analysis ID list without resolving analyses from disk."""
         path = self._path(recipe_id)
         if not path.exists():
@@ -81,7 +81,7 @@ class RecipeRepository:
         os.replace(tmp, path)
 
     @staticmethod
-    def _extract_ids(d: dict) -> list[str]:
+    def _extract_ids(d: dict):
         """Support both the new format (analysis_ids list) and the old embedded format."""
         if "analysis_ids" in d:
             return d["analysis_ids"]
