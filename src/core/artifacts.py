@@ -8,6 +8,7 @@ class ArtifactManager(object):
 
     def _raw_data_path(self, experiment_id: str, data_id: str) -> Path:
         return self.base_path / "raw_data" / experiment_id / data_id
+
     def get_history_log_path(self) -> Path:
         return self.base_path / "run_history.log"
 
@@ -39,13 +40,15 @@ class ArtifactManager(object):
             files = [f for f in ds_dir.iterdir() if f.is_file() and f.name != ".datasource"]
             total_size = sum(f.stat().st_size for f in files)
             last_modified = max((f.stat().st_mtime for f in files), default=ds_dir.stat().st_mtime)
-            results.append({
-                "experiment_id": experiment_id,
-                "data_id": data_id,
-                "file_count": len(files),
-                "total_size_bytes": total_size,
-                "last_modified": last_modified,
-            })
+            results.append(
+                {
+                    "experiment_id": experiment_id,
+                    "data_id": data_id,
+                    "file_count": len(files),
+                    "total_size_bytes": total_size,
+                    "last_modified": last_modified,
+                }
+            )
         return results
 
     def create_raw_data_directory_new(self, experiment_id: str, data_id: str) -> Path:

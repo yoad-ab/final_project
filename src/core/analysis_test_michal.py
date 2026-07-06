@@ -1,12 +1,10 @@
 from pathlib import Path
 
-from .analysis import Analysis
+from .analysis import Analysis, AnalysisCompletionStatus
 from .analysis_runner import AnalysisExecutor
 from .artifacts import ArtifactManager
 from .recipe import Recipe
-
 from .registry_manager import generate_run_id
-from .analysis import AnalysisCompletionStatus
 
 
 class AnalysisTestMichal(Analysis):
@@ -16,11 +14,7 @@ class AnalysisTestMichal(Analysis):
 
         (inp.output_dir / "output.txt").write_text(sample_output_text)
 
-        return inp.to_output(
-        status=AnalysisCompletionStatus.SUCCESS,
-        returned_object=sample_output_text,
-        analysis=self
-    )
+        return inp.to_output(status=AnalysisCompletionStatus.SUCCESS, returned_object=sample_output_text, analysis=self)
 
     def get_type_id(self) -> str:
         raise NotImplementedError
