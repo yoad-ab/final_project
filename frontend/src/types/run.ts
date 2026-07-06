@@ -18,5 +18,8 @@ export interface RunRecord {
   status: RunStatus
   started_at: string
   completed_at: string | null
+  // Absolute path to this run's output files on disk. Server-derived; may be
+  // absent on records produced before the field existed.
+  output_path?: string | null
   steps: StepRecord[]
 }

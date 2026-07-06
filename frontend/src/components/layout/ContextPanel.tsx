@@ -6,6 +6,7 @@ import { useDeleteRecipe, useRecipes, useRenameRecipe } from '@/api/recipes'
 import { cn } from '@/lib/utils'
 import { useTabsStore, makeTabId, selectActiveTab } from '@/store/tabs'
 import { DataSourceExplorer } from '@/components/data-sources/DataSourceExplorer'
+import { HistoryList } from '@/components/history/HistoryList'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -70,7 +71,7 @@ export function ContextPanel({ section }: Props) {
       {section === 'recipes'      && <RecipesList />}
       {section === 'data-sources' && <DataSourceExplorer />}
       {section === 'search'       && <SearchPanel />}
-      {section === 'history'      && <PlaceholderPanel label="Run history coming soon" />}
+      {section === 'history'      && <HistoryList />}
     </div>
   )
 }
@@ -425,7 +426,7 @@ function RecipesList() {
 
 // ── Shared primitives ──────────────────────────────────────────────────────
 
-function FilterInput({ placeholder }: { placeholder: string }) {
+export function FilterInput({ placeholder }: { placeholder: string }) {
   return (
     <div style={{ margin: '0 8px 7px', background: 'var(--color-bg-surface)', border: '1px solid var(--color-border)', borderRadius: 6, display: 'flex', alignItems: 'center', padding: '5px 8px', gap: 6, color: 'var(--color-text-3)', fontSize: 12 }}>
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -434,22 +435,31 @@ function FilterInput({ placeholder }: { placeholder: string }) {
   )
 }
 
-function ContextItem({
+export function ContextItem({
   primary,
   secondary,
   badge,
   isActive,
   onClick,
+  onDelete,
+  deleteTitle,
 }: {
   primary: string
   secondary?: string
   badge?: React.ReactNode
   isActive?: boolean
   onClick?: () => void
+  onDelete?: () => void
+  deleteTitle?: string
 }) {
+  const [hovered, setHovered] = useState(false)
+  const showDelete = Boolean(onDelete) && hovered
+
   return (
     <div
       onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       className={cn(
         'flex items-center gap-[7px] cursor-pointer px-[10px] py-[5px] transition-colors',
         isActive ? 'bg-[var(--color-bg-hover)]' : 'hover:bg-[var(--color-bg-hover)]',
@@ -469,10 +479,27 @@ function ContextItem({
       >
         {primary}
       </span>
-      {secondary && (
+      {secondary && !showDelete && (
         <span style={{ fontSize: 11, color: 'var(--color-text-3)', flexShrink: 0 }}>
           {secondary}
         </span>
+      )}
+      {onDelete && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete() }}
+          title={deleteTitle ?? 'Delete'}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--color-text-3)', padding: 2, borderRadius: 3,
+            flexShrink: 0, width: 18, height: 18, lineHeight: 1,
+            opacity: showDelete ? 1 : 0, transition: 'opacity 0.1s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-red)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-text-3)' }}
+        >
+          <Trash2 size={13} />
+        </button>
       )}
     </div>
   )
@@ -486,7 +513,7 @@ function TypeBadge({ typeId }: { typeId: string }) {
   )
 }
 
-function PanelLoading() {
+export function PanelLoading() {
   return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'var(--color-text-3)', fontSize: 12 }}>
       <Loader2 size={14} className="animate-spin" />
@@ -495,7 +522,7 @@ function PanelLoading() {
   )
 }
 
-function PanelError({ message }: { message: string }) {
+export function PanelError({ message }: { message: string }) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'var(--color-red)', fontSize: 12, padding: '0 12px', textAlign: 'center' }}>
       <AlertCircle size={18} />
@@ -504,7 +531,7 @@ function PanelError({ message }: { message: string }) {
   )
 }
 
-function PlaceholderPanel({ label }: { label: string }) {
+export function PlaceholderPanel({ label }: { label: string }) {
   return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-3)', fontSize: 12, padding: '0 16px', textAlign: 'center' }}>
       {label}

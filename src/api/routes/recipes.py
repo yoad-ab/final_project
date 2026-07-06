@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from ...core.recipe import Recipe
+from ...core.run_executor import execute_recipe
 from ...storage.storage_manager import StorageManager
 from ..deps import get_storage
-from ..models import RecipeCreate, RecipeOut, RecipeRename, RecipeUpdate
+from ..models import RecipeCreate, RecipeOut, RecipeRename, RecipeUpdate, RunCreate, RunOut
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
 
@@ -48,3 +49,21 @@ def rename_recipe(recipe_id: str, body: RecipeRename, storage: StorageManager = 
 @router.delete("/{recipe_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_recipe(recipe_id: str, storage: StorageManager = Depends(get_storage)):
     storage.recipes.delete(recipe_id)
+
+
+@router.post("/{recipe_id}/run", response_model=RunOut, status_code=status.HTTP_201_CREATED)
+def run_recipe(recipe_id: str, body: RunCreate, storage: StorageManager = Depends(get_storage)):
+    """Execute a recipe against a dataset and record the result as a new run.
+
+    Always creates a NEW run (new id, folder, timestamp) sitting beside any
+    prior runs — never overwrites. The run is saved even if it fails, so the
+    failure is visible in History. 404 if the recipe is missing (via the
+    FileNotFoundError handler); 422 if it has no steps.
+    """
+    recipe = storage.recipes.load(recipe_id)  # 404 if missing
+    if not recipe.analyses:
+        raise ValueError("Recipe has no steps to run.")  # -> 422
+    run = execute_recipe(recipe, body.experiment_id, body.data_id, storage.artifacts)
+    storage.runs.save(run)
+    output_path = str(storage.artifacts.run_directory(run.run_id).resolve())
+    return RunOut.from_record(run, output_path)

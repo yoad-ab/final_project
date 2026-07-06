@@ -20,12 +20,9 @@ export type SidebarSection = 'analyses' | 'recipes' | 'data-sources' | 'search' 
 const ITEMS: { id: SidebarSection; icon: React.ReactNode; label: string }[] = [
   { id: 'analyses',     icon: <LayoutGrid size={18} />, label: 'Analyses' },
   { id: 'recipes',      icon: <GitFork size={18} />,    label: 'Recipes' },
+  { id: 'history',      icon: <History size={18} />,     label: 'History' },
   { id: 'data-sources', icon: <Database size={18} />,   label: 'Data Sources' },
   { id: 'search',       icon: <Search size={18} />,      label: 'Search' },
-]
-
-const BOTTOM_ITEMS: { id: SidebarSection; icon: React.ReactNode; label: string }[] = [
-  { id: 'history', icon: <History size={18} />, label: 'History' },
 ]
 
 interface Props {
@@ -92,18 +89,6 @@ export function ActivityBar({ active, onSelect }: Props) {
         </DropdownMenu>
 
         {ITEMS.map(item => (
-          <ActivityIcon
-            key={item.id}
-            icon={item.icon}
-            label={item.label}
-            active={active === item.id}
-            onClick={() => onSelect(item.id)}
-          />
-        ))}
-
-        <div style={{ flex: 1 }} />
-
-        {BOTTOM_ITEMS.map(item => (
           <ActivityIcon
             key={item.id}
             icon={item.icon}
