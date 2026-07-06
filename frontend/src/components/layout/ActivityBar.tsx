@@ -1,5 +1,6 @@
 import { Database, GitBranch, History, LayoutGrid, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export type SidebarSection = 'analyses' | 'recipes' | 'data-sources' | 'search' | 'history'
 
@@ -21,41 +22,43 @@ interface Props {
 
 export function ActivityBar({ active, onSelect }: Props) {
   return (
-    <div
-      style={{
-        width: 48,
-        background: 'var(--color-bg-bar)',
-        borderRight: '1px solid var(--color-border)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: '8px 0',
-        gap: 2,
-        flexShrink: 0,
-      }}
-    >
-      {ITEMS.map(item => (
-        <ActivityIcon
-          key={item.id}
-          icon={item.icon}
-          label={item.label}
-          active={active === item.id}
-          onClick={() => onSelect(item.id)}
-        />
-      ))}
+    <TooltipProvider delayDuration={400}>
+      <div
+        style={{
+          width: 48,
+          background: 'var(--color-bg-bar)',
+          borderRight: '1px solid var(--color-border)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: '8px 0',
+          gap: 2,
+          flexShrink: 0,
+        }}
+      >
+        {ITEMS.map(item => (
+          <ActivityIcon
+            key={item.id}
+            icon={item.icon}
+            label={item.label}
+            active={active === item.id}
+            onClick={() => onSelect(item.id)}
+          />
+        ))}
 
-      <div style={{ flex: 1 }} />
+        <div style={{ flex: 1 }} />
 
-      {BOTTOM_ITEMS.map(item => (
-        <ActivityIcon
-          key={item.id}
-          icon={item.icon}
-          label={item.label}
-          active={active === item.id}
-          onClick={() => onSelect(item.id)}
-        />
-      ))}
-    </div>
+        {BOTTOM_ITEMS.map(item => (
+          <ActivityIcon
+            key={item.id}
+            icon={item.icon}
+            label={item.label}
+            active={active === item.id}
+            onClick={() => onSelect(item.id)}
+          />
+        ))}
+      </div>
+    </TooltipProvider>
   )
 }
 
@@ -68,33 +71,23 @@ function ActivityIcon({
   onClick: () => void
 }) {
   return (
-    <button
-      title={label}
-      onClick={onClick}
-      className={cn(
-        'relative flex items-center justify-center rounded-md cursor-pointer transition-colors',
-        'w-9 h-9 border-0',
-        active
-          ? 'text-[var(--color-text)] bg-[rgba(124,106,247,0.15)]'
-          : 'text-[var(--color-text-3)] bg-transparent hover:text-[var(--color-text-2)] hover:bg-[var(--color-bg-hover)]'
-      )}
-      style={{ outline: 'none' }}
-    >
-      {active && (
-        <span
-          style={{
-            position: 'absolute',
-            left: -1,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: 2,
-            height: 18,
-            background: 'var(--color-accent)',
-            borderRadius: '0 2px 2px 0',
-          }}
-        />
-      )}
-      {icon}
-    </button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={onClick}
+          className={cn(
+            'flex items-center justify-center rounded-md cursor-pointer transition-colors',
+            'w-9 h-9 border-0',
+            active
+              ? 'text-[var(--color-accent)] bg-[rgba(124,106,247,0.25)]'
+              : 'text-[var(--color-text-3)] bg-transparent hover:text-[var(--color-text-2)] hover:bg-[var(--color-bg-hover)]'
+          )}
+          style={{ outline: 'none' }}
+        >
+          {icon}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
   )
 }

@@ -1,7 +1,7 @@
 from pathlib import Path
 
+from ..core.artifacts import ArtifactManager
 from .analysis_repository import AnalysisRepository
-from .artifacts import ArtifactManager
 from .recipe_repository import RecipeRepository
 
 

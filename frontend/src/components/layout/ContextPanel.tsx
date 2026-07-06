@@ -1,4 +1,4 @@
-import { AlertCircle, Loader2, Plus } from 'lucide-react'
+import { AlertCircle, Inbox, Loader2, Plus } from 'lucide-react'
 import { useAnalyses } from '@/api/analyses'
 import { useRecipes } from '@/api/recipes'
 import { cn } from '@/lib/utils'

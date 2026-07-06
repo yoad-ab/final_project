@@ -33,9 +33,6 @@ class PythonAnalysis(Analysis):
     def deserialize(cls, analysis_id: str, params: dict) -> "PythonAnalysis":
         return cls(analysis_id, params["python_code"])
 
-    def get_analysis_id(self) -> str:
-        return "generic_python_analysis"
-
     def verify(self):
         # TODO: call Yoad's code here -> process_and_run_with_venv
         # throw exception on error
