@@ -157,7 +157,7 @@ class AnalysisApp:
         self.saved_code_text = self.textbox.get("1.0", tk.END).strip()
         try:
             
-            ucr.process_and_run_with_venv(self.saved_code_text, pathlib.Path("user_code.py"), pathlib.Path("venv"))
+            ucr.process_and_run_with_venv(self.saved_code_text, pathlib.Path("venv"))
             
             messagebox.showinfo(
             "Save Successful",

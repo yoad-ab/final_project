@@ -92,7 +92,7 @@ def return_function_name(code_string: str) -> str:
             return node.name
     raise ValueError(f"Function name '{expected_name}' not found in the code.")
 
-def create_user_code_file(code_text: str, file_path: pathlib.Path) -> str:
+def create_user_code_file(code_text: str) -> str:
     """
     Creates a Python file with the provided code string.
 
@@ -100,8 +100,6 @@ def create_user_code_file(code_text: str, file_path: pathlib.Path) -> str:
     ----------
     code_text : str
         The multi-line string containing the user's Python code.
-    file_path : pathlib.Path
-        The path where the Python file should be created.
     """
     try:
         ast.parse(code_text)
@@ -264,7 +262,7 @@ def sync_import_aliases(user_path: pathlib.Path) -> None:
         raise ValueError(f"Failed to update reference file: {e}")
 
 
-def process_and_run_with_venv(code_text: str, file_path: pathlib.Path, venv_path: pathlib.Path) -> None:
+def process_and_run_with_venv(code_text: str, venv_path: pathlib.Path) -> None:
     """
     Validates syntax, sets up a local venv, installs missing dependencies, 
     and dynamically loads the user code.
@@ -279,13 +277,15 @@ def process_and_run_with_venv(code_text: str, file_path: pathlib.Path, venv_path
         The path where the local virtual environment should be created.
     """
     # Step 1: Validate syntax before doing anything else
-    f_name = create_user_code_file(code_text, file_path)
-
-
+    f_name = create_user_code_file(code_text)
     # Step 2: Ensure virtual environment exists
-    create_venv(venv_path)
-    user_path = get_code_path(f_name)
-    # Step 3: Get paths to the Python executable and site-packages in the venv
-    init_venv(venv_path, user_path)
-
-    sync_import_aliases(user_path)
+    
+    
+    try:        
+        create_venv(venv_path)
+        user_path = get_code_path(f_name)
+        # Step 3: Get paths to the Python executable and site-packages in the venv
+        init_venv(venv_path, user_path)
+        sync_import_aliases(user_path)
+    except Exception as e:
+        user_path.unlink() # Remove the user code file if any step fails
