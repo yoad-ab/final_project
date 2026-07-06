@@ -8,6 +8,24 @@ import os
 import re
 from typing import Dict
 
+user_made_code_dir = pathlib.Path(__file__).parent / 'user_made_code'  # Directory to store user code files
+
+def get_code_path(function_name: str) -> pathlib.Path:
+    """
+    Returns the path to the user's code file based on the function name.
+
+    Parameters
+    ----------
+    function_name : str
+        The name of the function defined in the user's code.
+
+    Returns
+    -------
+    code_path : pathlib.Path
+        The path to the user's code file.
+    """
+    return user_made_code_dir / f"{function_name}.py"
+
 def get_venv_paths(venv_path: pathlib.Path) -> tuple:
     """
     Resolves the paths to the Python executable and site-packages inside the venv.
@@ -91,6 +109,7 @@ def create_user_code_file(code_text: str, file_path: pathlib.Path) -> str:
         raise SyntaxError(f"Syntax error in the provided code: {e}")    
     try:
         f_name = return_function_name(code_text)
+        path_name = get_code_path(f_name)
         if not f_name:
             raise ValueError("Function name not found")
     except ValueError as e:
@@ -98,9 +117,9 @@ def create_user_code_file(code_text: str, file_path: pathlib.Path) -> str:
     
     # Step 3: Write code to file
     try:
-        if(pathlib.Path(f_name+'.py').exists()):
+        if(pathlib.Path(path_name).exists()):
             raise FileExistsError(f"File '{f_name}.py' already exists. Please choose a different function name.")
-        with open(pathlib.Path(f_name+'.py'), "w", encoding="utf-8") as f:
+        with open(pathlib.Path(path_name), "w", encoding="utf-8") as f:
             f.write(code_text)
     except IOError as e:
         raise IOError(f"File Error: {e}")
@@ -135,7 +154,6 @@ def init_venv(venv_path: pathlib.Path, file_path: pathlib.Path) -> None:
             
     except ModuleNotFoundError as e:
         missing_package = e.name
-        print(e.name)
         # TODO: Update GUI here -> f"Installing missing package: {missing_package}..."
         print(f"Missing library '{missing_package}'. Installing via venv...")
         
@@ -147,7 +165,6 @@ def init_venv(venv_path: pathlib.Path, file_path: pathlib.Path) -> None:
             if module_name in sys.modules:
                 importlib.reload(sys.modules[module_name])
             else:
-                print(e.name)
                 importlib.import_module(module_name)
                 
             # TODO: Update GUI here -> "Installation complete!"
@@ -191,7 +208,7 @@ def extract_import_aliases(file_path: pathlib.Path) -> dict[str, str]:
                     else:
                         aliases[alias.name] = alias.name  # No alias, use the library name itself
     except Exception as e:
-        print(f"Error parsing file {file_path}: {e}")
+        raise ValueError(f"Error parsing file {file_path}: {e}")
         
     return aliases
 
@@ -205,7 +222,7 @@ def sync_import_aliases(user_path: pathlib.Path) -> None:
     user_path : pathlib.Path
         The path to the user's file serving as the source of truth.
     """
-    pep8_file_path = "user_code.py"  # Reference file
+    pep8_file_path = "pep8_aliases_file.py"  # Reference file
     pep_path = pathlib.Path(pep8_file_path)
 
     # 1. חילוץ המילונים משני הקבצים
@@ -214,8 +231,7 @@ def sync_import_aliases(user_path: pathlib.Path) -> None:
         return  # למשתמש אין קיצורים, אין מה לעדכן
 
     pep8_aliases = extract_import_aliases(pep_path)
-    print(f"User Aliases: {user_aliases}")
-    print(f"PEP8 Aliases: {pep8_aliases}")
+
     # 2. מציאת הפערים: אילו ספריות קיימות בשני הקבצים אבל עם שם קיצור שונה?
     libraries_to_update = {}
     for lib_name, user_alias in user_aliases.items():
@@ -243,9 +259,7 @@ def sync_import_aliases(user_path: pathlib.Path) -> None:
         # 5. שמירת הקובץ המעודכן
         with open(user_path, 'w', encoding='utf-8') as file:
             file.write(content)
-            
-        print("Reference file updated successfully to match user aliases.")
-        
+                    
     except Exception as e:
         raise ValueError(f"Failed to update reference file: {e}")
 
@@ -270,7 +284,7 @@ def process_and_run_with_venv(code_text: str, file_path: pathlib.Path, venv_path
 
     # Step 2: Ensure virtual environment exists
     create_venv(venv_path)
-    user_path = pathlib.Path(f_name+'.py')
+    user_path = get_code_path(f_name)
     # Step 3: Get paths to the Python executable and site-packages in the venv
     init_venv(venv_path, user_path)
 

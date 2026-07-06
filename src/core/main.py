@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
-import user_code_reader as UCR
+import user_code_reader as ucr
 import pathlib
 
 class AnalysisApp:
@@ -157,7 +157,7 @@ class AnalysisApp:
         self.saved_code_text = self.textbox.get("1.0", tk.END).strip()
         try:
             
-            UCR.process_and_run_with_venv(self.saved_code_text, pathlib.Path("user_code.py"), pathlib.Path("venv"))
+            ucr.process_and_run_with_venv(self.saved_code_text, pathlib.Path("user_code.py"), pathlib.Path("venv"))
             
             messagebox.showinfo(
             "Save Successful",
