@@ -2,6 +2,8 @@ from traceback import print_exc
 
 from .analysis import Analysis, AnalysisCompletionStatus, AnalysisInput, AnalysisOutput
 
+
+
 class PythonAnalysis(Analysis):
     # Just a sample of what this class should be, we should reimplement it
     # to properly run the code in the directory and stuff
@@ -12,6 +14,7 @@ class PythonAnalysis(Analysis):
     super().__init__(analysis_id)
     self.python_code = python_code
     self.user_arguments = user_arguments if user_arguments is not None else {}
+    
  
     def __repr__(self) -> str:
         return f"PythonAnalysis(python_code={self.python_code!r}, user_arguments={self.user_arguments!r})"

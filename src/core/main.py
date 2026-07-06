@@ -2,6 +2,15 @@ import tkinter as tk
 from tkinter import messagebox
 import user_code_reader as ucr
 import pathlib
+from ..storage.registry import load
+from ..storage.storage_manager import StorageManager
+from .analysis_python import PythonAnalysis
+from .analysis_runner import AnalysisExecutor
+from .artifacts import ArtifactManager
+from .recipe import Recipe
+import data_loader as dl
+
+storage_manager = StorageManager()
 
 class AnalysisApp:
     def __init__(self, root: tk.Tk) -> None:
@@ -91,6 +100,14 @@ class AnalysisApp:
         )
         self.remove_btn.grid(row=1, column=0, columnspan=2, pady=5, sticky="ew")
 
+        self.remove_btn = tk.Button(
+            self.controls_frame, 
+            text="Execute recipe", 
+            command=self.execute_recipe, 
+            bg="#ffcdd2"
+        )
+        self.remove_btn.grid(row=2, column=0, columnspan=2, pady=5, sticky="ew")
+
         # --- Right Panel (Textbox) ---
         self.text_frame = tk.Frame(self.main_content)
         # Pack to the left (after left panel), takes the remaining space
@@ -145,7 +162,7 @@ class AnalysisApp:
             
             # Synchronize the background data list
             self.selected_analyses.insert(index + 1, self.selected_analyses.pop(index))
-
+    
     def remove_item(self) -> None:
         """Removes the selected analysis from the listbox and data object."""
         selected_indices = self.analyses_listbox.curselection()
@@ -160,6 +177,24 @@ class AnalysisApp:
         # Delete from the background data list
         del self.selected_analyses[index]
 
+    def execute_recipe(self) -> None:
+        """Executes the selected analyses in the order they appear in the listbox."""
+        if not self.selected_analyses:
+            messagebox.showwarning("No Analyses Selected", "Please select at least one analysis to execute.")
+            return
+        
+        # Create a Recipe object with the selected analyses
+        recipe = Recipe("user_defined_recipe", [load(analysis_id) for analysis_id in self.selected_analyses])
+        
+        # Initialize ArtifactManager and AnalysisExecutor
+        artifact_manager = ArtifactManager(pathlib.Path("./data/"))
+        executor = AnalysisExecutor(artifact_manager)
+        
+        # Run the recipe
+        output = executor.run_recipe(recipe, "", dl.get_selected_data_id(), pathlib.Path("./data/run_folder"))
+        
+        # Display the output
+        messagebox.showinfo("Execution Complete", f"Output: {output}")
     # --- General Functions ---
 
     def save_text_content(self) -> None:
@@ -188,7 +223,7 @@ class AnalysisApp:
         analysis_window.title("Analysis Repository")
         analysis_window.geometry("300x250")
         
-        available_analyses = ["linear_regression", "data_cleaning", "clustering", "pca"]
+        available_analyses = storage_manager.analyses.list()  # Fetch the list of available analyses
         tk.Label(analysis_window, text="Select analysis to add:", font=("Arial", 12)).pack(pady=15)
         
         for analysis in available_analyses:

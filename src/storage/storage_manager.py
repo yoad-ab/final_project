@@ -18,7 +18,7 @@ class StorageManager:
     Callers (AppContext) only need to know the workspace root.
     """
 
-    def __init__(self, base_path: Path) -> None:
+    def __init__(self, base_path: Path = Path("./")) -> None:
         self.analyses = AnalysisRepository(base_path)
         self.recipes = RecipeRepository(base_path)
         self.artifacts = ArtifactManager(base_path / "data")
