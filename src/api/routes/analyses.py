@@ -1,12 +1,12 @@
 import ast
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from ...core.user_code_reader import return_function_name, check_imports
 from ...storage.registry import load
 from ...storage.storage_manager import StorageManager
 from ..deps import get_storage
-from ..models import AnalysisCreate, AnalysisOut, AnalysisUpdate, AnalysisValidate, AnalysisValidateResult
+from ..models import AnalysisCreate, AnalysisOut, AnalysisRename, AnalysisUpdate, AnalysisValidate, AnalysisValidateResult
 
 router = APIRouter(prefix="/analyses", tags=["analyses"])
 
@@ -75,6 +75,17 @@ def update_analysis(analysis_id: str, body: AnalysisUpdate, storage: StorageMana
 
     storage.analyses.update(updated)
     return AnalysisOut.from_analysis(updated)
+
+
+@router.patch("/{analysis_id}", response_model=AnalysisOut)
+def rename_analysis(analysis_id: str, body: AnalysisRename, storage: StorageManager = Depends(get_storage)):
+    try:
+        analysis = storage.analyses.rename(analysis_id, body.analysis_id)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except FileExistsError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    return AnalysisOut.from_analysis(analysis)
 
 
 @router.delete("/{analysis_id}", status_code=status.HTTP_204_NO_CONTENT)
