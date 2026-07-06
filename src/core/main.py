@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from threading import Thread
 
@@ -22,6 +23,8 @@ def run_ui():
 
     webview.create_window("Analysis App", str(html_path))
     webview.start()
+
+    sys.exit(0)
 
 
 def main():
