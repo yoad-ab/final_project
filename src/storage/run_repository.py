@@ -44,7 +44,15 @@ class RunRepository:
     def list(self) -> list[str]:
         if not self._dir().exists():
             return []
-        return sorted(p.stem for p in self._dir().glob("*.json"))
+        ids = [p.stem for p in self._dir().glob("*.json")]
+
+        def _sort_key(rid: str):
+            try:
+                return (0, int(rid))
+            except ValueError:
+                return (1, rid)
+
+        return sorted(ids, key=_sort_key)
 
     def _write(self, run: RunRecord) -> None:
         self._dir().mkdir(parents=True, exist_ok=True)
