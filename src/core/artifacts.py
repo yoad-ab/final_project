@@ -87,11 +87,20 @@ class ArtifactManager(object):
             raise FileNotFoundError(f"File not found: {path}")
         path.unlink()
 
+    def run_directory(self, run_id: str) -> Path:
+        """
+        Return the directory where a run's outputs live, WITHOUT creating it.
+        Single source of truth for the run-output path convention; safe to call
+        from read-only code paths (e.g. the history API) that must not have
+        filesystem side effects.
+        """
+        return self.base_path / "runs" / f"run_{run_id}"
+
     def get_run_directory(self, run_id: str) -> Path:
         """
         Create (if needed) and return the directory for a specific run.
         """
-        path = self.base_path / "runs" / f"run_{run_id}"
+        path = self.run_directory(run_id)
         path.mkdir(parents=True, exist_ok=True)
         return path
 

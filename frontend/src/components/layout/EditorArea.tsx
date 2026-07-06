@@ -26,6 +26,7 @@ import { useDirtyStore } from '@/store/dirty'
 import { AnalysisEditor } from '@/components/editor/AnalysisEditor'
 import { DataFileViewer } from '@/components/editor/DataFileViewer'
 import { RecipeEditor } from '@/components/editor/RecipeEditor'
+import { RunView } from '@/components/run/RunView'
 
 // ── Icons per tab kind ────────────────────────────────────────────────────
 
@@ -240,8 +241,8 @@ function TabContent({ tabId }: { tabId: TabId }) {
   if (kind === 'analysis') return <AnalysisEditor tabId={tabId} />
   if (kind === 'recipe')   return <RecipeEditor tabId={tabId} />
   if (kind === 'datafile') return <DataFileViewer tabId={tabId} />
+  if (kind === 'run')      return <RunView tabId={tabId} />
 
-  // Placeholder for run — coming soon
   const color = KIND_COLOR[kind] ?? 'var(--color-text-3)'
   return (
     <div
