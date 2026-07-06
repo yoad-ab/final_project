@@ -1,21 +1,20 @@
 """Registry reader — the READ side of the output tracker.
 
-The write side already exists (a teammate's ``registry_manager.py`` appends rows
+The write side already exists (``registry_manager.py`` appends rows
 to ``run_registry.csv``). This module is the counterpart: it reads those rows
 back into ``RunRecord`` objects for the history window to display. It writes
-nothing — reading and display are entirely ours and depend on no one.
+nothing.
 
-It targets the teammate's existing seven-column schema:
+seven-column schema:
 
     run_id, start_time, end_time, dataset, analysis, status, run_path
 
 Header tolerance
 ----------------
 There's a known naming inconsistency on the write side (``run_id`` written as
-the header vs. ``Run ID`` read elsewhere). Rather than depend on which name wins
-when that's reconciled, this reader normalises header keys — lower-cased, spaces
-and underscores folded — so it parses the file correctly either way. That keeps
-the button working across the rename instead of breaking on it.
+the header vs. ``Run ID`` read elsewhere). This reader normalises header keys — lower-cased,
+spaces and underscores folded— so it parses the file correctly either way. 
+That keeps the history window working across the rename instead of breaking on it.
 """
 
 from __future__ import annotations
@@ -41,9 +40,10 @@ _HEADER_ALIASES: dict[str, str] = {
     "run_path": "run_path",
     "runpath": "run_path",
     "path": "run_path",
-    # Optional, once the writer emits it (from feature/analysis-hashing).
-    # The counter (run_id) stays the human-readable id; this is the
-    # reproducibility fingerprint. Reader shows it if present, ignores if not.
+
+    # Optional, once emitted (from feature/analysis-hashing).
+    # The counter (run_id) stays the human-readable id; this is the reproducibility fingerprint.
+    # Reader shows it if present, ignores if not.
     "object_hash": "object_hash",
     "objecthash": "object_hash",
     "hash": "object_hash",
@@ -132,8 +132,6 @@ class RegistryReader(object):
 
 
 if __name__ == "__main__":
-    # Self-test: write a CSV in the teammate's exact format (including the
-    # header-naming quirk on purpose) and confirm we read it back correctly.
     import tempfile
 
     tmp = Path(tempfile.mkdtemp()) / "run_registry.csv"
