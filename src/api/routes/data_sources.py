@@ -84,7 +84,7 @@ async def upload_files(
         if len(content) > _MAX_UPLOAD_BYTES:
             raise HTTPException(
                 status_code=413,
-                detail=f"{filename} exceeds maximum file size of {_MAX_UPLOAD_BYTES // (1024*1024)} MB",
+                detail=f"{filename} exceeds maximum file size of {_MAX_UPLOAD_BYTES // (1024 * 1024)} MB",
             )
         storage.artifacts.save_file(exp, did, filename, content)
         saved.append(filename)

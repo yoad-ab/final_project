@@ -69,6 +69,9 @@ class Analysis(ABC):
     def run(self, inp: AnalysisInput) -> AnalysisOutput:
         pass
 
+    def verify(self) -> None:
+        pass
+
     @abstractmethod
     def get_type_id(self) -> str:
         """

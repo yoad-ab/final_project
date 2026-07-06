@@ -1,9 +1,13 @@
+import shutil
 from pathlib import Path
 
 
 class ArtifactManager(object):
     def __init__(self, base_path: Path) -> None:
         self.base_path = base_path
+
+    def _raw_data_path(self, experiment_id: str, data_id: str) -> Path:
+        return self.base_path / "raw_data" / experiment_id / data_id
 
     def get_raw_data_directory(self, experiment_id: str, data_id: str) -> Path:
         """
@@ -13,19 +17,82 @@ class ArtifactManager(object):
         """
 
         # Does this work with "/" entries in data_id?
-        path = self.base_path / "raw_data" / experiment_id / data_id
+        path = self._raw_data_path(experiment_id, data_id)
         if not path.exists():
             raise FileNotFoundError(f"Raw data directory not found: {path}")
         return path
+
+    def list_data_sources(self) -> list[dict]:
+        raw_root = self.base_path / "raw_data"
+        if not raw_root.exists():
+            return []
+
+        results = []
+        for marker in raw_root.rglob(".datasource"):
+            ds_dir = marker.parent
+            parts = ds_dir.relative_to(raw_root).parts
+            experiment_id = parts[0]
+            data_id = "/".join(parts[1:]) if len(parts) > 1 else ""
+
+            files = [f for f in ds_dir.iterdir() if f.is_file() and f.name != ".datasource"]
+            total_size = sum(f.stat().st_size for f in files)
+            last_modified = max((f.stat().st_mtime for f in files), default=ds_dir.stat().st_mtime)
+            results.append({
+                "experiment_id": experiment_id,
+                "data_id": data_id,
+                "file_count": len(files),
+                "total_size_bytes": total_size,
+                "last_modified": last_modified,
+            })
+        return results
+
+    def create_raw_data_directory_new(self, experiment_id: str, data_id: str) -> Path:
+        path = self._raw_data_path(experiment_id, data_id)
+        path.mkdir(parents=True, exist_ok=True)
+        (path / ".datasource").touch()
+        return path
+
+    def get_raw_data_files(self, experiment_id: str, data_id: str) -> list[dict]:
+        path = self.get_raw_data_directory(experiment_id, data_id)
+        files = []
+        for f in path.iterdir():
+            if f.is_file() and f.name != ".datasource":
+                stat = f.stat()
+                files.append({"name": f.name, "size_bytes": stat.st_size, "last_modified": stat.st_mtime})
+        return files
+
+    def save_file(self, experiment_id: str, data_id: str, filename: str, content: bytes) -> Path:
+        path = self._raw_data_path(experiment_id, data_id)
+        if not path.exists():
+            raise FileNotFoundError(f"Raw data directory not found: {path}")
+        file_path = path / filename
+        file_path.write_bytes(content)
+        return file_path
+
+    def get_raw_data_file_path(self, experiment_id: str, data_id: str, filename: str) -> Path:
+        path = self._raw_data_path(experiment_id, data_id) / filename
+        if not path.exists():
+            raise FileNotFoundError(f"File not found: {path}")
+        return path
+
+    def delete_raw_data_directory(self, experiment_id: str, data_id: str) -> None:
+        path = self._raw_data_path(experiment_id, data_id)
+        if not path.exists():
+            raise FileNotFoundError(f"Raw data directory not found: {path}")
+        shutil.rmtree(path)
+
+    def delete_file(self, experiment_id: str, data_id: str, filename: str) -> None:
+        path = self._raw_data_path(experiment_id, data_id) / filename
+        if not path.exists():
+            raise FileNotFoundError(f"File not found: {path}")
+        path.unlink()
 
     def get_run_directory(self, run_id: str) -> Path:
         """
         Create (if needed) and return the directory for a specific run.
         """
-
         path = self.base_path / "runs" / f"run_{run_id}"
         path.mkdir(parents=True, exist_ok=True)
-
         return path
 
     # def get_analysis_output_directory(self, analysis: Analysis) -> Path:
