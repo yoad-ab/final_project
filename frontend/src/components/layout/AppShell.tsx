@@ -6,8 +6,19 @@ import { BottomPanel } from './BottomPanel'
 import { AIDrawer } from '../assistant/AIDrawer'
 import { useWorkspace } from '@/api/workspace'
 import { useTabsStore } from '@/store/tabs'
+import { useThemeStore } from '@/store/theme'
 
 export function AppShell() {
+  const theme = useThemeStore((s) => s.theme)
+
+  useEffect(() => {
+    const root = document.documentElement
+    if (theme === 'dark') {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+  }, [theme])
   const [activeSection, setActiveSection] = useState<SidebarSection | null>('analyses')
   const { data: workspace } = useWorkspace()
   const setWorkspaceId = useTabsStore((s) => s.setWorkspaceId)
