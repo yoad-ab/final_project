@@ -184,13 +184,14 @@ export function DataFileViewer({ tabId }: { tabId: string }) {
         )}
 
         {data && !data.too_large && !isLoading && !isError && (
-          <AgGridReact
-            theme={darkTheme}
-            columnDefs={columnDefs}
-            rowData={rowData}
-            defaultColDef={{ sortable: true, resizable: true, filter: true }}
-            style={{ height: '100%', width: '100%' }}
-          />
+          <div style={{ height: '100%', width: '100%' }}>
+            <AgGridReact
+              theme={darkTheme}
+              columnDefs={columnDefs}
+              rowData={rowData}
+              defaultColDef={{ sortable: true, resizable: true, filter: true }}
+            />
+          </div>
         )}
       </div>
     </div>

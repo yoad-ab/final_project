@@ -46,7 +46,7 @@ function setWs(state: TabsStore, ws: WorkspaceState): Partial<TabsStore> {
 
 export const useTabsStore = create<TabsStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       workspaceId: 'default',
       workspaces: {},
 

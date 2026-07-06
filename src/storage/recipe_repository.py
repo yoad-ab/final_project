@@ -36,6 +36,18 @@ class RecipeRepository:
         d = json.loads(path.read_text(encoding="utf-8"))
         return Recipe(d["recipe_id"], [load(a) for a in d["analyses"]])
 
+    def rename(self, old_id: str, new_id: str) -> "Recipe":
+        old_path = self._path(old_id)
+        if not old_path.exists():
+            raise FileNotFoundError(f"Recipe not found: {old_id!r}")
+        if self.exists(new_id):
+            raise FileExistsError(f"Recipe already exists: {new_id!r}")
+        recipe = self.load(old_id)
+        new_recipe = Recipe(new_id, recipe.analyses)
+        self._write(new_recipe)
+        old_path.unlink()
+        return new_recipe
+
     def delete(self, recipe_id: str) -> None:
         path = self._path(recipe_id)
         if not path.exists():

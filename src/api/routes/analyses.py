@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, status
+import ast
 
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from ...core.user_code_reader import return_function_name, check_imports
 from ...storage.registry import load
 from ...storage.storage_manager import StorageManager
 from ..deps import get_storage
-from ..models import AnalysisCreate, AnalysisOut, AnalysisUpdate
+from ..models import AnalysisCreate, AnalysisOut, AnalysisRename, AnalysisUpdate, AnalysisValidate, AnalysisValidateResult
 
 router = APIRouter(prefix="/analyses", tags=["analyses"])
 
@@ -30,6 +33,28 @@ def create_analysis(body: AnalysisCreate, storage: StorageManager = Depends(get_
     return AnalysisOut.from_analysis(analysis)
 
 
+@router.post("/validate", response_model=AnalysisValidateResult)
+def validate_code(body: AnalysisValidate):
+    if body.type_id != "python":
+        return AnalysisValidateResult(valid=True)
+    try:
+        ast.parse(body.code)
+    except SyntaxError as e:
+        return AnalysisValidateResult(valid=False, error=f"Syntax error on line {e.lineno}: {e.msg}")
+
+    imports_ok, import_error = check_imports(body.code)
+    if not imports_ok:
+        return AnalysisValidateResult(valid=False, error=import_error)
+
+    try:
+        function_name = return_function_name(body.code)
+        return AnalysisValidateResult(valid=True, function_name=function_name or None)
+    except ValueError as e:
+        return AnalysisValidateResult(valid=False, error=str(e))
+    except Exception as e:
+        return AnalysisValidateResult(valid=False, error=str(e))
+
+
 @router.get("/{analysis_id}", response_model=AnalysisOut)
 def get_analysis(analysis_id: str, storage: StorageManager = Depends(get_storage)):
     analysis = storage.analyses.load(analysis_id)
@@ -50,6 +75,17 @@ def update_analysis(analysis_id: str, body: AnalysisUpdate, storage: StorageMana
 
     storage.analyses.update(updated)
     return AnalysisOut.from_analysis(updated)
+
+
+@router.patch("/{analysis_id}", response_model=AnalysisOut)
+def rename_analysis(analysis_id: str, body: AnalysisRename, storage: StorageManager = Depends(get_storage)):
+    try:
+        analysis = storage.analyses.rename(analysis_id, body.analysis_id)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except FileExistsError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    return AnalysisOut.from_analysis(analysis)
 
 
 @router.delete("/{analysis_id}", status_code=status.HTTP_204_NO_CONTENT)

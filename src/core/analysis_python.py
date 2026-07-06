@@ -36,11 +36,6 @@ class PythonAnalysis(Analysis):
     def deserialize(cls, analysis_id: str, params: dict) -> "PythonAnalysis":
         return cls(analysis_id, params["python_code"])
 
-    def verify(self):
-        # TODO: call Yoad's code here -> process_and_run_with_venv
-        # throw exception on error
-        return super().verify()
-
     def run(self, inp: AnalysisInput) -> AnalysisOutput:
         try:
             # 1. Setup core environment with system paths

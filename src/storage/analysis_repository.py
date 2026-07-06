@@ -38,6 +38,19 @@ class AnalysisRepository:
             raise FileNotFoundError(f"Analysis not found: {analysis_id!r}")
         return load(json.loads(path.read_text(encoding="utf-8")))
 
+    def rename(self, old_id: str, new_id: str) -> "Analysis":
+        old_path = self._path(old_id)
+        if not old_path.exists():
+            raise FileNotFoundError(f"Analysis not found: {old_id!r}")
+        if self.exists(new_id):
+            raise FileExistsError(f"Analysis already exists: {new_id!r}")
+        data = json.loads(old_path.read_text(encoding="utf-8"))
+        data["analysis_id"] = new_id
+        new_analysis = load(data)
+        self._write(new_analysis)
+        old_path.unlink()
+        return new_analysis
+
     def delete(self, analysis_id: str) -> None:
         path = self._path(analysis_id)
         if not path.exists():

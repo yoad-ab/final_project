@@ -146,3 +146,75 @@ export function useDeleteFile() {
     },
   })
 }
+
+export function useRenameFile() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      experimentId,
+      dataId,
+      filename,
+      newName,
+    }: {
+      experimentId: string
+      dataId: string
+      filename: string
+      newName: string
+    }) =>
+      apiFetch(`/data-sources/${experimentId}/${dataId}/${encodeURIComponent(filename)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ new_name: newName }),
+      }),
+    onSuccess: (_data, { experimentId, dataId }) => {
+      qc.invalidateQueries({ queryKey: keys.all() })
+      qc.invalidateQueries({ queryKey: keys.detail(experimentId, dataId) })
+    },
+  })
+}
+
+export function useRenameDataSource() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      experimentId,
+      dataId,
+      newDataId,
+    }: {
+      experimentId: string
+      dataId: string
+      newDataId: string
+    }) =>
+      apiFetch(`/data-sources/${experimentId}/${dataId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ data_id: newDataId }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.all() }),
+  })
+}
+
+export function useRenameExperiment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      experimentId,
+      newExperimentId,
+    }: {
+      experimentId: string
+      newExperimentId: string
+    }) =>
+      apiFetch(`/data-sources/${experimentId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ experiment_id: newExperimentId }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.all() }),
+  })
+}
+
+export function useDeleteExperiment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ experimentId }: { experimentId: string }) =>
+      apiFetch(`/data-sources/${experimentId}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.all() }),
+  })
+}

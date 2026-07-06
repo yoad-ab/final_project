@@ -7,7 +7,16 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 
 from ...storage.storage_manager import StorageManager
 from ..deps import get_storage
-from ..models import DataFileContent, DataSourceCreate, DataSourceDetail, DataSourceEntry, FileInfo
+from ..models import (
+    DataFileContent,
+    DataSourceCreate,
+    DataSourceDetail,
+    DataSourceEntry,
+    DataSourceRename,
+    ExperimentRename,
+    FileInfo,
+    FileRename,
+)
 
 router = APIRouter(prefix="/data-sources", tags=["data-sources"])
 
@@ -145,6 +154,63 @@ def get_file_content(
     )
 
 
+@router.patch("/{experiment_id}", status_code=status.HTTP_200_OK)
+def rename_experiment(
+    experiment_id: str,
+    body: ExperimentRename,
+    storage: StorageManager = Depends(get_storage),
+):
+    exp = _validate_name(experiment_id, "experiment_id")
+    new_exp = _validate_name(body.experiment_id, "experiment_id")
+    try:
+        storage.artifacts.rename_experiment(exp, new_exp)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except FileExistsError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    return {"experiment_id": new_exp}
+
+
+@router.delete("/{experiment_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_experiment(
+    experiment_id: str,
+    storage: StorageManager = Depends(get_storage),
+):
+    exp = _validate_name(experiment_id, "experiment_id")
+    try:
+        storage.artifacts.delete_experiment(exp)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.patch("/{experiment_id}/{data_id}", response_model=DataSourceEntry)
+def rename_data_source(
+    experiment_id: str,
+    data_id: str,
+    body: DataSourceRename,
+    storage: StorageManager = Depends(get_storage),
+):
+    exp = _validate_name(experiment_id, "experiment_id")
+    did = _validate_name(data_id, "data_id")
+    new_did = _validate_name(body.data_id, "data_id")
+    try:
+        storage.artifacts.rename_data_source(exp, did, new_did)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except FileExistsError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    files = storage.artifacts.get_raw_data_files(exp, new_did)
+    total = sum(f["size_bytes"] for f in files)
+    last_mod = max((f["last_modified"] for f in files), default=0.0)
+    return DataSourceEntry(
+        experiment_id=exp,
+        data_id=new_did,
+        file_count=len(files),
+        total_size_bytes=total,
+        last_modified=last_mod,
+    )
+
+
 @router.delete("/{experiment_id}/{data_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_data_source(
     experiment_id: str,
@@ -154,6 +220,27 @@ def delete_data_source(
     exp = _validate_name(experiment_id, "experiment_id")
     did = _validate_name(data_id, "data_id")
     storage.artifacts.delete_raw_data_directory(exp, did)
+
+
+@router.patch("/{experiment_id}/{data_id}/{filename}", status_code=status.HTTP_200_OK)
+def rename_file(
+    experiment_id: str,
+    data_id: str,
+    filename: str,
+    body: FileRename,
+    storage: StorageManager = Depends(get_storage),
+):
+    exp = _validate_name(experiment_id, "experiment_id")
+    did = _validate_name(data_id, "data_id")
+    fname = _validate_name(filename, "filename")
+    new_fname = _validate_name(body.new_name, "new_name")
+    try:
+        storage.artifacts.rename_file(exp, did, fname, new_fname)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except FileExistsError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    return {"name": new_fname}
 
 
 @router.delete("/{experiment_id}/{data_id}/{filename}", status_code=status.HTTP_204_NO_CONTENT)

@@ -15,9 +15,10 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
-  GripVertical, GitFork, FileCode2, Terminal,
-  X, ExternalLink, Plus, Loader2, Check, AlertCircle,
+  GripVertical, GitFork,
+  X, Plus, Loader2, Check, AlertCircle,
 } from 'lucide-react'
+import { LangIcon } from '@/components/icons/LangIcons'
 import { useRecipe, useCreateRecipe, useUpdateRecipe } from '@/api/recipes'
 import { useAnalyses } from '@/api/analyses'
 import { useTabsStore, makeTabId } from '@/store/tabs'
@@ -42,7 +43,8 @@ function codePreview(a: AnalysisDTO): string {
     : (a.params.python_code as string) ?? ''
   const lines = raw.split('\n').filter(l => l.trim())
   if (!lines.length) return '(empty)'
-  return lines.slice(0, 2).join('\n')
+  const preview = lines.slice(0, 5).join('\n')
+  return lines.length > 5 ? preview + '\n…' : preview
 }
 
 function TypeBadge({ typeId }: { typeId: string }) {
@@ -91,9 +93,6 @@ function StepCard({ step, index, onRemove, onOpenInTab }: StepCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: step.id })
 
-  const Icon = analysis.type_id === 'shell' ? Terminal : FileCode2
-  const iconColor = analysis.type_id === 'shell' ? '#34d399' : '#60a5fa'
-
   return (
     <div
       ref={setNodeRef}
@@ -105,12 +104,14 @@ function StepCard({ step, index, onRemove, onOpenInTab }: StepCardProps) {
       }}
     >
       <div
+        onClick={onOpenInTab}
         style={{
           width: 420,
           background: 'var(--color-bg-panel)',
           border: '1px solid var(--color-border)',
           borderRadius: 8,
           overflow: 'hidden',
+          cursor: 'pointer',
         }}
         className="recipe-step-card"
       >
@@ -124,6 +125,7 @@ function StepCard({ step, index, onRemove, onOpenInTab }: StepCardProps) {
           {/* Drag handle */}
           <div
             {...attributes} {...listeners}
+            onClick={e => e.stopPropagation()}
             style={{ cursor: 'grab', color: 'var(--color-text-3)', display: 'flex', alignItems: 'center', flexShrink: 0, touchAction: 'none' }}
           >
             <GripVertical size={13} />
@@ -134,8 +136,7 @@ function StepCard({ step, index, onRemove, onOpenInTab }: StepCardProps) {
             {index + 1}
           </span>
 
-          <Icon size={12} style={{ color: iconColor, flexShrink: 0 }} />
-          <TypeBadge typeId={analysis.type_id} />
+          <LangIcon typeId={analysis.type_id} size={12} />
 
           <span style={{
             flex: 1, fontSize: 13, fontWeight: 500,
@@ -145,10 +146,7 @@ function StepCard({ step, index, onRemove, onOpenInTab }: StepCardProps) {
             {analysis.analysis_id}
           </span>
 
-          <button onClick={onOpenInTab} title="Open in tab" className="recipe-icon-btn">
-            <ExternalLink size={11} />
-          </button>
-          <button onClick={onRemove} title="Remove step" className="recipe-icon-btn">
+          <button onClick={e => { e.stopPropagation(); onRemove() }} title="Remove step" className="recipe-icon-btn">
             <X size={11} />
           </button>
         </div>
@@ -191,9 +189,10 @@ interface AddStepProps {
   onQueryChange: (q: string) => void
   onSelect: (a: AnalysisDTO, i: number) => void
   analyses: AnalysisDTO[]
+  primary?: boolean
 }
 
-function AddStep({ insertIndex, activeIndex, query, onOpen, onClose, onQueryChange, onSelect, analyses }: AddStepProps) {
+function AddStep({ insertIndex, activeIndex, query, onOpen, onClose, onQueryChange, onSelect, analyses, primary }: AddStepProps) {
   const isOpen = activeIndex === insertIndex
 
   const filtered = analyses.filter(a =>
@@ -202,7 +201,10 @@ function AddStep({ insertIndex, activeIndex, query, onOpen, onClose, onQueryChan
 
   if (!isOpen) {
     return (
-      <button onClick={() => onOpen(insertIndex)} className="add-step-btn">
+      <button
+        onClick={() => onOpen(insertIndex)}
+        className={primary ? 'add-step-btn add-step-btn--primary' : 'add-step-btn'}
+      >
         <Plus size={11} />
         Add Step
       </button>
@@ -291,7 +293,7 @@ function RecipeCanvas({ steps, allAnalyses, onReorder, onRemove, onInsert }: Can
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
         <GitFork size={30} strokeWidth={1.2} style={{ color: 'var(--color-text-3)' }} />
         <span style={{ fontSize: 14, color: 'var(--color-text-2)' }}>No steps yet</span>
-        <AddStep insertIndex={0} {...addStepProps} />
+        <AddStep insertIndex={0} {...addStepProps} primary />
       </div>
     )
   }
@@ -323,7 +325,6 @@ function RecipeCanvas({ steps, allAnalyses, onReorder, onRemove, onInsert }: Can
 
 interface HeaderProps {
   titleNode: React.ReactNode
-  stepCount: number
   isDirty: boolean
   isSaving: boolean
   saveOk: boolean
@@ -333,7 +334,7 @@ interface HeaderProps {
   saveLabel?: string
 }
 
-function RecipeHeader({ titleNode, stepCount, isDirty, isSaving, saveOk, saveError, canSave = true, onSave, saveLabel = 'Save' }: HeaderProps) {
+function RecipeHeader({ titleNode, isDirty, isSaving, saveOk, saveError, canSave = true, onSave, saveLabel = 'Save' }: HeaderProps) {
   const saveDisabled = isSaving || !canSave || (!isDirty && saveLabel === 'Save')
 
   return (
@@ -343,10 +344,6 @@ function RecipeHeader({ titleNode, stepCount, isDirty, isSaving, saveOk, saveErr
     }}>
       <GitFork size={14} style={{ color: '#34d399', flexShrink: 0 }} strokeWidth={2} />
       <div style={{ flex: 1, minWidth: 0 }}>{titleNode}</div>
-
-      <span style={{ fontSize: 11, color: 'var(--color-text-3)', flexShrink: 0 }}>
-        {stepCount} step{stepCount !== 1 ? 's' : ''}
-      </span>
 
       {saveError && (
         <span style={{ fontSize: 11, color: 'var(--color-red)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -462,7 +459,7 @@ function ExistingRecipeEditor({ tabId, recipeId }: { tabId: string; recipeId: st
             {recipeId}
           </span>
         }
-        stepCount={steps.length}
+
         isDirty={isDirty}
         isSaving={updateMutation.isPending}
         saveOk={saveOk}
@@ -560,7 +557,7 @@ function NewRecipeEditor({ tabId }: { tabId: string }) {
             }}
           />
         }
-        stepCount={steps.length}
+
         isDirty={Boolean(recipeId || steps.length)}
         isSaving={createMutation.isPending}
         saveOk={saveOk}

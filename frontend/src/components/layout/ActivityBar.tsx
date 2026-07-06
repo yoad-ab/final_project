@@ -1,12 +1,25 @@
-import { Database, GitBranch, History, LayoutGrid, Search } from 'lucide-react'
+import { Database, GitFork, History, LayoutGrid, Layers, Moon, Search, Sun } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { useThemeStore } from '@/store/theme'
 
 export type SidebarSection = 'analyses' | 'recipes' | 'data-sources' | 'search' | 'history'
 
 const ITEMS: { id: SidebarSection; icon: React.ReactNode; label: string }[] = [
   { id: 'analyses',     icon: <LayoutGrid size={18} />, label: 'Analyses' },
-  { id: 'recipes',      icon: <GitBranch size={18} />,  label: 'Recipes' },
+  { id: 'recipes',      icon: <GitFork size={18} />,    label: 'Recipes' },
   { id: 'data-sources', icon: <Database size={18} />,   label: 'Data Sources' },
   { id: 'search',       icon: <Search size={18} />,      label: 'Search' },
 ]
@@ -21,6 +34,8 @@ interface Props {
 }
 
 export function ActivityBar({ active, onSelect }: Props) {
+  const { theme, setTheme } = useThemeStore()
+
   return (
     <TooltipProvider delayDuration={400}>
       <div
@@ -36,6 +51,46 @@ export function ActivityBar({ active, onSelect }: Props) {
           flexShrink: 0,
         }}
       >
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className={cn(
+                'flex items-center justify-center rounded-md cursor-pointer transition-colors',
+                'w-9 h-9 border-0 mb-2',
+                'text-[var(--color-accent)] bg-transparent hover:bg-[var(--color-bg-hover)]'
+              )}
+              style={{ outline: 'none' }}
+            >
+              <Layers size={20} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="start">
+            <DropdownMenuLabel>Analysis Studio</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                {theme === 'dark' ? <Moon size={14} /> : <Sun size={14} />}
+                Appearance
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuRadioGroup
+                  value={theme}
+                  onValueChange={(v) => setTheme(v as 'light' | 'dark')}
+                >
+                  <DropdownMenuRadioItem value="light">
+                    <Sun size={14} />
+                    Light
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="dark">
+                    <Moon size={14} />
+                    Dark
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {ITEMS.map(item => (
           <ActivityIcon
             key={item.id}

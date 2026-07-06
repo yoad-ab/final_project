@@ -6,6 +6,7 @@ import {
   File,
   FolderOpen,
   Loader2,
+  Pencil,
   ServerCrash,
   Trash2,
   Upload,
@@ -17,12 +18,29 @@ import {
   useDataSources,
   useDeleteDataSource,
   useDeleteFile,
+  useRenameDataSource,
+  useRenameFile,
   useUploadFiles,
   VIEWABLE_EXTENSIONS,
   type DataSourceEntry,
 } from '@/api/data-sources'
 import { ApiError } from '@/api/client'
 import { makeTabId, useTabsStore } from '@/store/tabs'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -44,6 +62,115 @@ function errorMessage(err: unknown): string {
   if (err instanceof ApiError && err.status === 0) return 'Cannot reach server'
   if (err instanceof Error) return err.message
   return 'Unknown error'
+}
+
+// ── Shared rename / delete dialogs ────────────────────────────────────────
+
+function RenameDialog({
+  open,
+  title,
+  description,
+  value,
+  onChange,
+  onConfirm,
+  onCancel,
+  isPending,
+}: {
+  open: boolean
+  title: string
+  description: string
+  value: string
+  onChange: (v: string) => void
+  onConfirm: () => void
+  onCancel: () => void
+  isPending: boolean
+}) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onCancel() }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') onConfirm()
+            if (e.key === 'Escape') onCancel()
+          }}
+          autoFocus
+          style={{
+            width: '100%',
+            background: 'var(--color-bg-surface)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 6,
+            color: 'var(--color-text)',
+            fontSize: 13,
+            padding: '6px 10px',
+            outline: 'none',
+          }}
+        />
+        <DialogFooter>
+          <button
+            onClick={onConfirm}
+            disabled={isPending || !value.trim()}
+            style={{ background: 'var(--color-accent)', border: 'none', borderRadius: 5, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, padding: '5px 14px', opacity: isPending ? 0.7 : 1 }}
+          >
+            {isPending ? 'Renaming…' : 'Rename'}
+          </button>
+          <button
+            onClick={onCancel}
+            style={{ background: 'none', border: '1px solid var(--color-border)', borderRadius: 5, color: 'var(--color-text-2)', cursor: 'pointer', fontSize: 13, padding: '5px 14px' }}
+          >
+            Cancel
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function DeleteDialog({
+  open,
+  title,
+  description,
+  onConfirm,
+  onCancel,
+  isPending,
+}: {
+  open: boolean
+  title: string
+  description: string
+  onConfirm: () => void
+  onCancel: () => void
+  isPending: boolean
+}) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onCancel() }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <button
+            onClick={onConfirm}
+            disabled={isPending}
+            style={{ background: 'var(--color-red)', border: 'none', borderRadius: 5, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, padding: '5px 14px', opacity: isPending ? 0.7 : 1 }}
+          >
+            {isPending ? 'Deleting…' : 'Delete'}
+          </button>
+          <button
+            onClick={onCancel}
+            style={{ background: 'none', border: '1px solid var(--color-border)', borderRadius: 5, color: 'var(--color-text-2)', cursor: 'pointer', fontSize: 13, padding: '5px 14px' }}
+          >
+            Cancel
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 // ── Inline error banner ───────────────────────────────────────────────────
@@ -182,7 +309,11 @@ function FileRow({
 }) {
   const [hovered, setHovered] = useState(false)
   const [localErr, setLocalErr] = useState('')
+  const [renaming, setRenaming] = useState(false)
+  const [renameName, setRenameName] = useState('')
+  const [deleting, setDeleting] = useState(false)
   const deleteFile = useDeleteFile()
+  const renameFile = useRenameFile()
   const openTab = useTabsStore((s) => s.openTab)
 
   const ext = name.slice(name.lastIndexOf('.')).toLowerCase()
@@ -197,54 +328,96 @@ function FileRow({
     setLocalErr('')
     try {
       await deleteFile.mutateAsync({ experimentId, dataId, filename: name })
+      setDeleting(false)
     } catch (err) {
       setLocalErr(errorMessage(err))
     }
   }
 
+  function handleRename() {
+    if (!renameName.trim() || renameName === name) { setRenaming(false); return }
+    renameFile.mutate(
+      { experimentId, dataId, filename: name, newName: renameName.trim() },
+      { onSuccess: () => setRenaming(false) },
+    )
+  }
+
   return (
     <>
-      <div
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        onClick={isViewable ? handleOpen : undefined}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 5,
-          padding: '3px 10px 3px 44px',
-          background: hovered ? 'var(--color-bg-hover)' : 'transparent',
-          cursor: isViewable ? 'pointer' : 'default',
-        }}
-      >
-        <File size={11} style={{ color: isViewable ? '#34d399' : 'var(--color-text-3)', flexShrink: 0 }} />
-        <span style={{ flex: 1, fontSize: 12, color: isViewable ? 'var(--color-text)' : 'var(--color-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {name}
-        </span>
-        <span style={{ fontSize: 10, color: 'var(--color-text-3)', flexShrink: 0 }}>
-          {fmtSize(sizeBytes)}
-        </span>
-        <button
-          onClick={handleDelete}
-          disabled={deleteFile.isPending}
-          title="Delete file"
-          style={{
-            ...iconBtnStyle,
-            opacity: hovered || deleteFile.isPending ? 1 : 0,
-            color: 'var(--color-text-3)',
-            transition: 'opacity 0.1s',
-            width: 18,
-          }}
-        >
-          {deleteFile.isPending
-            ? <Loader2 size={10} className="animate-spin" />
-            : <X size={11} />
-          }
-        </button>
-      </div>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <div
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            onClick={isViewable ? handleOpen : undefined}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '3px 10px 3px 44px',
+              background: hovered ? 'var(--color-bg-hover)' : 'transparent',
+              cursor: isViewable ? 'pointer' : 'default',
+            }}
+          >
+            <File size={11} style={{ color: isViewable ? '#34d399' : 'var(--color-text-3)', flexShrink: 0 }} />
+            <span style={{ flex: 1, fontSize: 12, color: isViewable ? 'var(--color-text)' : 'var(--color-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {name}
+            </span>
+            <span style={{ fontSize: 10, color: 'var(--color-text-3)', flexShrink: 0 }}>
+              {fmtSize(sizeBytes)}
+            </span>
+            <button
+              onClick={(e) => { e.stopPropagation(); deleteFile.mutate({ experimentId, dataId, filename: name }) }}
+              disabled={deleteFile.isPending}
+              title="Delete file"
+              style={{
+                ...iconBtnStyle,
+                opacity: hovered || deleteFile.isPending ? 1 : 0,
+                color: 'var(--color-text-3)',
+                transition: 'opacity 0.1s',
+                width: 18,
+              }}
+            >
+              {deleteFile.isPending
+                ? <Loader2 size={10} className="animate-spin" />
+                : <X size={11} />
+              }
+            </button>
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          <ContextMenuItem onSelect={() => { setRenameName(name); setRenaming(true) }}>
+            <Pencil size={13} />
+            Rename
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem destructive onSelect={() => setDeleting(true)}>
+            <Trash2 size={13} />
+            Delete
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
       {localErr && (
         <div style={{ padding: '0 44px 2px', fontSize: 10, color: 'var(--color-red)' }}>{localErr}</div>
       )}
+      <RenameDialog
+        open={renaming}
+        title="Rename File"
+        description={`Enter a new name for "${name}".`}
+        value={renameName}
+        onChange={setRenameName}
+        onConfirm={handleRename}
+        onCancel={() => setRenaming(false)}
+        isPending={renameFile.isPending}
+      />
+      <DeleteDialog
+        open={deleting}
+        title="Delete File"
+        description={`Are you sure you want to delete "${name}"? This action cannot be undone.`}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleting(false)}
+        isPending={deleteFile.isPending}
+      />
     </>
   )
 }
@@ -255,10 +428,13 @@ function DataSourceItem({ entry }: { entry: DataSourceEntry }) {
   const [expanded, setExpanded] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [uploadErr, setUploadErr] = useState('')
-  const [deleteErr, setDeleteErr] = useState('')
+  const [renaming, setRenaming] = useState(false)
+  const [renameName, setRenameName] = useState('')
+  const [deleting, setDeleting] = useState(false)
   const uploadRef = useRef<HTMLInputElement>(null)
   const upload = useUploadFiles()
   const deleteDs = useDeleteDataSource()
+  const renameDs = useRenameDataSource()
 
   const detail = useDataSourceDetail(entry.experiment_id, entry.data_id, expanded)
 
@@ -275,76 +451,80 @@ function DataSourceItem({ entry }: { entry: DataSourceEntry }) {
     }
   }
 
-  async function handleDelete() {
-    setDeleteErr('')
-    if (!confirm(`Delete "${entry.data_id}" and all its files?`)) return
-    try {
-      await deleteDs.mutateAsync({ experimentId: entry.experiment_id, dataId: entry.data_id })
-    } catch (err) {
-      setDeleteErr(errorMessage(err))
-    }
+  function handleRename() {
+    if (!renameName.trim() || renameName === entry.data_id) { setRenaming(false); return }
+    renameDs.mutate(
+      { experimentId: entry.experiment_id, dataId: entry.data_id, newDataId: renameName.trim() },
+      { onSuccess: () => setRenaming(false) },
+    )
   }
 
   return (
     <div>
-      {/* data_id header row — indented under experiment */}
-      <div
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-          padding: '3px 8px 3px 20px',
-          background: hovered ? 'var(--color-bg-hover)' : 'transparent',
-        }}
-      >
-        <button
-          onClick={() => setExpanded(v => !v)}
-          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--color-text-3)', display: 'flex', lineHeight: 1, flexShrink: 0 }}
-        >
-          {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        </button>
-
-        <FolderOpen size={12} style={{ color: '#a78bfa', flexShrink: 0 }} />
-
-        <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setExpanded(v => !v)}>
-          <div style={{ fontSize: 12, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {entry.data_id}
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--color-text-3)' }}>
-            {entry.file_count} file{entry.file_count !== 1 ? 's' : ''} · {fmtSize(entry.total_size_bytes)}
-          </div>
-        </div>
-
-        <span style={{ fontSize: 10, color: 'var(--color-text-3)', flexShrink: 0, opacity: hovered ? 0 : 1, transition: 'opacity 0.1s', pointerEvents: 'none' }}>
-          {fmtRelTime(entry.last_modified)}
-        </span>
-
-        <div style={{ display: 'flex', gap: 2, flexShrink: 0, opacity: hovered ? 1 : 0, transition: 'opacity 0.1s' }}>
-          <button
-            onClick={e => { e.stopPropagation(); uploadRef.current?.click() }}
-            disabled={upload.isPending}
-            title="Upload files"
-            style={iconBtnStyle}
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          {/* data_id header row — indented under experiment */}
+          <div
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '3px 8px 3px 20px',
+              background: hovered ? 'var(--color-bg-hover)' : 'transparent',
+            }}
           >
-            {upload.isPending ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
-          </button>
-          <button
-            onClick={e => { e.stopPropagation(); handleDelete() }}
-            disabled={deleteDs.isPending}
-            title="Delete dataset"
-            style={{ ...iconBtnStyle, color: 'var(--color-red)' }}
-          >
-            {deleteDs.isPending ? <Loader2 size={11} className="animate-spin" style={{ color: 'var(--color-red)' }} /> : <Trash2 size={11} />}
-          </button>
-        </div>
+            <button
+              onClick={() => setExpanded(v => !v)}
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--color-text-3)', display: 'flex', lineHeight: 1, flexShrink: 0 }}
+            >
+              {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            </button>
 
-        <input ref={uploadRef} type="file" multiple style={{ display: 'none' }} onChange={handleUpload} />
-      </div>
+            <FolderOpen size={12} style={{ color: '#a78bfa', flexShrink: 0 }} />
+
+            <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setExpanded(v => !v)}>
+              <div style={{ fontSize: 12, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {entry.data_id}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--color-text-3)' }}>
+                {entry.file_count} file{entry.file_count !== 1 ? 's' : ''} · {fmtSize(entry.total_size_bytes)}
+              </div>
+            </div>
+
+            <span style={{ fontSize: 10, color: 'var(--color-text-3)', flexShrink: 0, opacity: hovered ? 0 : 1, transition: 'opacity 0.1s', pointerEvents: 'none' }}>
+              {fmtRelTime(entry.last_modified)}
+            </span>
+
+            <div style={{ display: 'flex', gap: 2, flexShrink: 0, opacity: hovered ? 1 : 0, transition: 'opacity 0.1s' }}>
+              <button
+                onClick={e => { e.stopPropagation(); uploadRef.current?.click() }}
+                disabled={upload.isPending}
+                title="Upload files"
+                style={iconBtnStyle}
+              >
+                {upload.isPending ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
+              </button>
+            </div>
+
+            <input ref={uploadRef} type="file" multiple style={{ display: 'none' }} onChange={handleUpload} />
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          <ContextMenuItem onSelect={() => { setRenameName(entry.data_id); setRenaming(true) }}>
+            <Pencil size={13} />
+            Rename
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem destructive onSelect={() => setDeleting(true)}>
+            <Trash2 size={13} />
+            Delete
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
 
       {uploadErr && <ErrorBanner message={uploadErr} />}
-      {deleteErr && <ErrorBanner message={deleteErr} />}
 
       {expanded && (
         <div style={{ paddingBottom: 2 }}>
@@ -373,6 +553,28 @@ function DataSourceItem({ entry }: { entry: DataSourceEntry }) {
           ))}
         </div>
       )}
+
+      <RenameDialog
+        open={renaming}
+        title="Rename Dataset"
+        description={`Enter a new name for "${entry.data_id}".`}
+        value={renameName}
+        onChange={setRenameName}
+        onConfirm={handleRename}
+        onCancel={() => setRenaming(false)}
+        isPending={renameDs.isPending}
+      />
+      <DeleteDialog
+        open={deleting}
+        title="Delete Dataset"
+        description={`Are you sure you want to delete "${entry.data_id}" and all its files? This action cannot be undone.`}
+        onConfirm={() => deleteDs.mutate(
+          { experimentId: entry.experiment_id, dataId: entry.data_id },
+          { onSuccess: () => setDeleting(false) },
+        )}
+        onCancel={() => setDeleting(false)}
+        isPending={deleteDs.isPending}
+      />
     </div>
   )
 }

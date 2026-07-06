@@ -13,9 +13,10 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Keyboard, FileCode2, GitFork, Play, Sheet, X } from 'lucide-react'
+import { FileCode2, GitFork, LayoutGrid, Play, Sheet, Upload, X } from 'lucide-react'
 import {
   useTabsStore,
+  makeTabId,
   selectTabs,
   selectActiveTab,
   parseTabId,
@@ -179,7 +180,6 @@ function SortableTab({ tabId, isActive, onActivate, onClose }: SortableTabProps)
 function TabStrip() {
   const tabs = useTabsStore(selectTabs)
   const activeTab = useTabsStore(selectActiveTab)
-  const openTab = useTabsStore((s) => s.openTab)
   const closeTab = useTabsStore((s) => s.closeTab)
   const setActiveTab = useTabsStore((s) => s.setActiveTab)
   const reorderTabs = useTabsStore((s) => s.reorderTabs)
@@ -263,7 +263,22 @@ function TabContent({ tabId }: { tabId: TabId }) {
 
 // ── Empty state ───────────────────────────────────────────────────────────
 
+function newAnalysisTabId() {
+  return makeTabId('analysis', `~new-${crypto.randomUUID().slice(0, 8)}`)
+}
+
+function newRecipeTabId() {
+  return makeTabId('recipe', `~new-${crypto.randomUUID().slice(0, 8)}`)
+}
+
 function EmptyState() {
+  const openTab = useTabsStore((s) => s.openTab)
+
+  function openDataSource() {
+    window.dispatchEvent(new CustomEvent('sidebar:show-section', { detail: 'data-sources' }))
+    setTimeout(() => window.dispatchEvent(new CustomEvent('ds-explorer:create')), 80)
+  }
+
   return (
     <div
       style={{
@@ -272,33 +287,57 @@ function EmptyState() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 10,
+        gap: 28,
         color: 'var(--color-text-3)',
       }}
     >
-      <Keyboard size={36} strokeWidth={1.2} />
-      <span style={{ fontSize: 15, color: 'var(--color-text-2)', fontWeight: 500 }}>
-        No editor open
-      </span>
-      <span style={{ fontSize: 12, textAlign: 'center', lineHeight: 1.6 }}>
-        Select an analysis or recipe from the sidebar,
-        <br />
-        or press{' '}
-        <kbd
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        <LayoutGrid size={52} strokeWidth={1} style={{ color: 'var(--color-text-3)' }} />
+        <span style={{ fontSize: 22, fontWeight: 600, color: 'var(--color-text-2)' }}>
+          No editor open
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', gap: 12 }}>
+        <button
+          onClick={() => openTab(newAnalysisTabId())}
           style={{
-            padding: '1px 5px',
-            background: 'var(--color-bg-hover)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 3,
-            fontFamily: 'var(--font-mono)',
-            fontSize: 11,
-            color: 'var(--color-text-2)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+            background: 'var(--color-accent)', border: 'none', color: '#fff',
+            cursor: 'pointer', borderRadius: 10, padding: '20px 28px',
+            fontSize: 14, fontWeight: 600, minWidth: 130,
           }}
         >
-          Ctrl+P
-        </kbd>{' '}
-        to quick-open.
-      </span>
+          <FileCode2 size={28} strokeWidth={1.5} />
+          New Analysis
+        </button>
+
+        <button
+          onClick={() => openTab(newRecipeTabId())}
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+            background: 'var(--color-accent)', border: 'none', color: '#fff',
+            cursor: 'pointer', borderRadius: 10, padding: '20px 28px',
+            fontSize: 14, fontWeight: 600, minWidth: 130,
+          }}
+        >
+          <GitFork size={28} strokeWidth={1.5} />
+          New Recipe
+        </button>
+
+        <button
+          onClick={openDataSource}
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+            background: 'var(--color-accent)', border: 'none', color: '#fff',
+            cursor: 'pointer', borderRadius: 10, padding: '20px 28px',
+            fontSize: 14, fontWeight: 600, minWidth: 130,
+          }}
+        >
+          <Upload size={28} strokeWidth={1.5} />
+          Upload Data
+        </button>
+      </div>
     </div>
   )
 }

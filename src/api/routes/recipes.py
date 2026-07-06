@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from ...core.recipe import Recipe
 from ...storage.storage_manager import StorageManager
 from ..deps import get_storage
-from ..models import RecipeCreate, RecipeOut, RecipeUpdate
+from ..models import RecipeCreate, RecipeOut, RecipeRename, RecipeUpdate
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
 
@@ -31,6 +31,17 @@ def update_recipe(recipe_id: str, body: RecipeUpdate, storage: StorageManager = 
     analyses = [storage.analyses.load(aid) for aid in body.analysis_ids]
     recipe = Recipe(recipe_id, analyses)
     storage.recipes.update(recipe)
+    return RecipeOut.from_recipe(recipe)
+
+
+@router.patch("/{recipe_id}", response_model=RecipeOut)
+def rename_recipe(recipe_id: str, body: RecipeRename, storage: StorageManager = Depends(get_storage)):
+    try:
+        recipe = storage.recipes.rename(recipe_id, body.recipe_id)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except FileExistsError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     return RecipeOut.from_recipe(recipe)
 
 
