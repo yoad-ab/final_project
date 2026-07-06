@@ -32,10 +32,10 @@ data/output_data/: This folder stores the final analytical results. Each output 
 
 ### Tracking & Logging
 
-run_registry.csv: The central tracking file acting as the project's database and version log. It records the run_id, timestamps, durations, analysis types, input/output files, and parameters.
+run_history.log: The central tracking file acting as the project's database and version log. It records the run_id, timestamps, durations, analysis types, input/output files, and parameters.
 
 
-run_history.log: A text-based log file that documents the program's execution and real-time operations, making it easy to trace errors in case of a crash.
+run_registry.csv: A text-based log file that documents the program's execution and real-time operations, making it easy to trace errors in case of a crash.
 
 ## Codebase Structure (Python Modules)
 All Python code is organized inside the src/ directory, adhering to PEP 8 standards with snake_case naming conventions to separate UI logic, execution logic, and user-defined operations.

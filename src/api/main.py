@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from ..storage.storage_manager import StorageManager
-from .routes import analyses, recipes
+from .routes import analyses, history, recipes
 from .routes import data_sources as data_sources_router
 from .routes import workspace as workspace_router
 
@@ -50,3 +50,4 @@ app.include_router(analyses.router)
 app.include_router(recipes.router)
 app.include_router(workspace_router.router)
 app.include_router(data_sources_router.router)
+app.include_router(history.router)
