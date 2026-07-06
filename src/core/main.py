@@ -1,261 +1,33 @@
-import tkinter as tk
-from tkinter import messagebox
-import user_code_reader as ucr
-import pathlib
-from ..storage.registry import load
-from ..storage.storage_manager import StorageManager
-from .analysis_python import PythonAnalysis
-from .analysis_runner import AnalysisExecutor
-from .artifacts import ArtifactManager
-from .recipe import Recipe
-import data_loader as dl
+import os
+from pathlib import Path
+from threading import Thread
 
-storage_manager = StorageManager()
+import uvicorn
+import webview
 
-class AnalysisApp:
-    def __init__(self, root: tk.Tk) -> None:
-        """Initializes the main GUI window.
-        
-        Parameters
-        ----------
-        root : tk.Tk
-            The root window object for the Tkinter application.
-        """
-        self.root = root
-        self.root.title("Analysis Management System")
-        self.root.geometry("900x600")
-        
-        # Data objects
-        self.saved_code_text = ""       
-        self.selected_analyses = []     
-        
-        # Build the interface
-        self.create_widgets()
+from ..api.main import app
 
-    def create_widgets(self) -> None:
-        """Creates and arranges the widgets in the main window."""
-        # 1. Top frame for buttons (centered at the top)
-        self.top_frame = tk.Frame(self.root)
-        self.top_frame.pack(side=tk.TOP, pady=15, fill=tk.X)
-        
-        # Rightmost button - opens the analysis selection window
-        self.analysis_btn = tk.Button(
-            self.top_frame, 
-            text="➕ Select Analyses", 
-            command=self.open_analysis_window,
-            bg="#e0f7fa",
-            font=("Arial", 10, "bold")
-        )
-        self.analysis_btn.pack(side=tk.RIGHT, padx=20)
 
-        # Leftmost button - opens the Output Tracker window
-        self.history_btn = tk.Button(
-            self.top_frame,
-            text="🕘 Output Tracker",
-            command=self.open_history_window,
-            bg="#fff3e0",
-            font=("Arial", 10, "bold")
-        )
-        self.history_btn.pack(side=tk.RIGHT, padx=20)
+def run_server():
+    config = uvicorn.Config(app=app, host="127.0.0.1", port=8000)
+    server = uvicorn.Server(config=config)
+    server.run()
 
-        # 2. Main content frame (contains list on the left, textbox on the right)
-        self.main_content = tk.Frame(self.root)
-        self.main_content.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
 
-        # --- Left Panel (Analysis list and control buttons) ---
-        self.left_panel = tk.Frame(self.main_content)
-        # Pack to the left. fill=tk.Y allows the panel to take full height
-        self.left_panel.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 20))
+def run_ui():
+    current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+    html_path = current_dir / ".." / ".." / "frontend" / "dist" / "index.html"
 
-        tk.Label(
-            self.left_panel, 
-            text="Analysis Execution Order:", 
-            font=("Arial", 12, "bold")
-        ).pack(pady=(0, 5))
+    print("html path", html_path)
 
-        # Listbox - Interactive list
-        self.analyses_listbox = tk.Listbox(
-            self.left_panel, 
-            font=("Arial", 11), 
-            selectmode=tk.SINGLE, 
-            width=25
-        )
-        self.analyses_listbox.pack(fill=tk.Y, expand=True)
+    webview.create_window("Analysis App", str(html_path))
+    webview.start()
 
-        # Control buttons below the list
-        self.controls_frame = tk.Frame(self.left_panel)
-        self.controls_frame.pack(pady=10)
 
-        self.up_btn = tk.Button(self.controls_frame, text="⬆️ Move Up", command=self.move_up)
-        self.up_btn.grid(row=0, column=0, padx=5)
-
-        self.down_btn = tk.Button(self.controls_frame, text="⬇️ Move Down", command=self.move_down)
-        self.down_btn.grid(row=0, column=1, padx=5)
-
-        self.remove_btn = tk.Button(
-            self.controls_frame, 
-            text="❌ Remove Analysis", 
-            command=self.remove_item, 
-            bg="#ffcdd2"
-        )
-        self.remove_btn.grid(row=1, column=0, columnspan=2, pady=5, sticky="ew")
-
-        self.remove_btn = tk.Button(
-            self.controls_frame, 
-            text="Execute recipe", 
-            command=self.execute_recipe, 
-            bg="#ffcdd2"
-        )
-        self.remove_btn.grid(row=2, column=0, columnspan=2, pady=5, sticky="ew")
-
-        # --- Right Panel (Textbox) ---
-        self.text_frame = tk.Frame(self.main_content)
-        # Pack to the left (after left panel), takes the remaining space
-        self.text_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
-        self.textbox = tk.Text(self.text_frame, wrap=tk.WORD, font=("Courier New", 11))
-        self.textbox.pack(fill=tk.BOTH, expand=True)
-
-        # 3. Submit button at the bottom
-        self.submit_btn = tk.Button(
-            self.root, 
-            text="Save Code", 
-            command=self.save_text_content,
-            bg="#4CAF50",
-            fg="white",
-            font=("Arial", 12, "bold")
-        )
-        self.submit_btn.pack(side=tk.BOTTOM, pady=20)
-
-    # --- Analysis Listbox Control Functions ---
-
-    def move_up(self) -> None:
-        """Moves the selected analysis one position up in the listbox."""
-        selected_indices = self.analyses_listbox.curselection()
-        if not selected_indices:
-            return
-        
-        index = selected_indices[0]
-        if index > 0:
-            # Swap in the GUI listbox
-            item = self.analyses_listbox.get(index)
-            self.analyses_listbox.delete(index)
-            self.analyses_listbox.insert(index - 1, item)
-            self.analyses_listbox.selection_set(index - 1)
-            
-            # Synchronize the background data list
-            self.selected_analyses.insert(index - 1, self.selected_analyses.pop(index))
-
-    def move_down(self) -> None:
-        """Moves the selected analysis one position down in the listbox."""
-        selected_indices = self.analyses_listbox.curselection()
-        if not selected_indices:
-            return
-        
-        index = selected_indices[0]
-        if index < self.analyses_listbox.size() - 1:
-            # Swap in the GUI listbox
-            item = self.analyses_listbox.get(index)
-            self.analyses_listbox.delete(index)
-            self.analyses_listbox.insert(index + 1, item)
-            self.analyses_listbox.selection_set(index + 1)
-            
-            # Synchronize the background data list
-            self.selected_analyses.insert(index + 1, self.selected_analyses.pop(index))
-    
-    def remove_item(self) -> None:
-        """Removes the selected analysis from the listbox and data object."""
-        selected_indices = self.analyses_listbox.curselection()
-        if not selected_indices:
-            return
-        
-        index = selected_indices[0]
-        
-        # Delete from GUI
-        self.analyses_listbox.delete(index)
-        
-        # Delete from the background data list
-        del self.selected_analyses[index]
-
-    def execute_recipe(self) -> None:
-        """Executes the selected analyses in the order they appear in the listbox."""
-        if not self.selected_analyses:
-            messagebox.showwarning("No Analyses Selected", "Please select at least one analysis to execute.")
-            return
-        
-        # Create a Recipe object with the selected analyses
-        recipe = Recipe("user_defined_recipe", [load(analysis_id) for analysis_id in self.selected_analyses])
-        
-        # Initialize ArtifactManager and AnalysisExecutor
-        artifact_manager = ArtifactManager(pathlib.Path("./data/"))
-        executor = AnalysisExecutor(artifact_manager)
-        
-        # Run the recipe
-        output = executor.run_recipe(recipe, "", dl.get_selected_data_id(), pathlib.Path("./data/run_folder"))
-        
-        # Display the output
-        messagebox.showinfo("Execution Complete", f"Output: {output}")
-    # --- General Functions ---
-
-    def save_text_content(self) -> None:
-        """Saves the text from the textbox object into a string variable."""
-        self.saved_code_text = self.textbox.get("1.0", tk.END).strip()
-        try:
-            
-            ucr.process_and_run_with_venv(self.saved_code_text, pathlib.Path("venv"))
-            
-            messagebox.showinfo(
-            "Save Successful",
-            f"The code has been saved."
-            )
-
-        except SyntaxError as e:
-            messagebox.showerror("Error", f"Syntax error in the code:\n{e}")
-
-        except Exception as e:
-            messagebox.showerror("Error", f"An error occurred while saving the code:\n{e}")
-        
-        
-
-    def open_analysis_window(self) -> None:
-        """Opens a secondary window to select analyses from a predefined list."""
-        analysis_window = tk.Toplevel(self.root)
-        analysis_window.title("Analysis Repository")
-        analysis_window.geometry("300x250")
-        
-        available_analyses = storage_manager.analyses.list()  # Fetch the list of available analyses
-        tk.Label(analysis_window, text="Select analysis to add:", font=("Arial", 12)).pack(pady=15)
-        
-        for analysis in available_analyses:
-            btn = tk.Button(
-                analysis_window, 
-                text=analysis,
-                command=lambda a=analysis: self.add_analysis_to_list(a)
-            )
-            btn.pack(pady=5, fill=tk.X, padx=40)
-
-    def open_history_window(self) -> None:
-        """Opens the run history window."""
-        from pathlib import Path
-        from registry_reader import RegistryReader
-        from history_window import HistoryWindow
-        HistoryWindow(self.root, RegistryReader(Path("run_registry.csv")))
-
-    def add_analysis_to_list(self, analysis_name: str) -> None:
-        """Adds the selected analysis to the listbox and underlying data list.
-        
-        Parameters
-        ----------
-        analysis_name : str
-            The name of the analysis to be added to the execution list."""
-        # Add to the background data list
-        self.selected_analyses.append(analysis_name)
-        # Visual addition to the listbox
-        self.analyses_listbox.insert(tk.END, analysis_name)
-        messagebox.showinfo("Added", f"The analysis '{analysis_name}' was added successfully.")
+def main():
+    Thread(target=run_server, daemon=True).start()
+    run_ui()
 
 
 if __name__ == "__main__":
-    main_window = tk.Tk()
-    app = AnalysisApp(main_window)
-    main_window.mainloop()
+    main()
