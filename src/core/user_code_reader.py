@@ -1,16 +1,15 @@
 import ast
 import importlib
 import importlib.util
+import os
+import pathlib
 import subprocess
 import sys
-import pathlib
 import venv
-import os
-import re
-from typing import Dict
 
-user_made_code_dir = pathlib.Path(__file__).parent.parent / 'workspace' / 'analyses'  # Directory to store user code files
+user_made_code_dir = pathlib.Path(__file__).parent.parent / "workspace" / "analyses"  # Directory to store user code files
 pep8_file_path = "pep8_aliases_file.py"  # Reference file
+
 
 def get_code_path(function_name: str) -> pathlib.Path:
     """
@@ -28,6 +27,7 @@ def get_code_path(function_name: str) -> pathlib.Path:
     """
     return user_made_code_dir / f"{function_name}.py"
 
+
 def get_venv_paths(venv_path: pathlib.Path) -> tuple:
     """
     Resolves the paths to the Python executable and site-packages inside the venv.
@@ -42,7 +42,7 @@ def get_venv_paths(venv_path: pathlib.Path) -> tuple:
     paths : tuple
         A tuple containing (python_executable_path, site_packages_path).
     """
-    if os.name == 'nt':  # Windows environment
+    if os.name == "nt":  # Windows environment
         python_exe = venv_path / "Scripts" / "python.exe"
         site_packages = venv_path / "Lib" / "site-packages"
     else:  # macOS / Linux environment
@@ -54,8 +54,9 @@ def get_venv_paths(venv_path: pathlib.Path) -> tuple:
             site_packages = python_version_dir / "site-packages"
         except StopIteration:
             site_packages = lib_dir  # Fallback if not found
-            
+
     return python_exe, site_packages
+
 
 def return_function_name(code_string: str) -> str:
     """
@@ -94,6 +95,7 @@ def return_function_name(code_string: str) -> str:
             return node.name
     raise ValueError(f"Function name '{expected_name}' not found in the code.")
 
+
 def check_imports(code_string: str) -> tuple[bool, str | None]:
     """
     Checks whether all top-level imports in the code are resolvable (installed).
@@ -108,7 +110,7 @@ def check_imports(code_string: str) -> tuple[bool, str | None]:
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
-                top_level = alias.name.split('.')[0]
+                top_level = alias.name.split(".")[0]
                 try:
                     if importlib.util.find_spec(top_level) is None:
                         return False, f"Module '{alias.name}' is not installed"
@@ -116,7 +118,7 @@ def check_imports(code_string: str) -> tuple[bool, str | None]:
                     return False, f"Module '{alias.name}' is not installed"
         elif isinstance(node, ast.ImportFrom):
             if node.module and node.level == 0:  # absolute imports only
-                top_level = node.module.split('.')[0]
+                top_level = node.module.split(".")[0]
                 try:
                     if importlib.util.find_spec(top_level) is None:
                         return False, f"Module '{node.module}' is not installed"
@@ -138,7 +140,7 @@ def create_user_code_file(code_text: str) -> str:
     try:
         ast.parse(code_text)
     except SyntaxError as e:
-        raise SyntaxError(f"Syntax error in the provided code: {e}")    
+        raise SyntaxError(f"Syntax error in the provided code: {e}")
     try:
         f_name = return_function_name(code_text)
         path_name = get_code_path(f_name)
@@ -146,10 +148,10 @@ def create_user_code_file(code_text: str) -> str:
             raise ValueError("Function name not found")
     except ValueError as e:
         raise ValueError(f"cant find function name: {e}")
-    
+
     # Step 3: Write code to file
     try:
-        if(pathlib.Path(path_name).exists()):
+        if pathlib.Path(path_name).exists():
             raise FileExistsError(f"File '{f_name}.py' already exists. Please choose a different function name.")
         with open(pathlib.Path(path_name), "w", encoding="utf-8") as f:
             f.write(code_text)
@@ -157,11 +159,13 @@ def create_user_code_file(code_text: str) -> str:
         raise IOError(f"File Error: {e}")
     return f_name
 
+
 def create_venv(venv_path: pathlib.Path) -> None:
     if not venv_path.exists():
         # TODO: Update GUI here -> "Creating virtual environment, please wait..."
-        print("Creating virtual environment...") 
+        print("Creating virtual environment...")
         venv.create(venv_path, with_pip=True)
+
 
 def init_venv(venv_path: pathlib.Path, file_path: pathlib.Path) -> None:
     # Resolve venv paths
@@ -170,7 +174,7 @@ def init_venv(venv_path: pathlib.Path, file_path: pathlib.Path) -> None:
     # Inject the venv's site-packages into the current runtime environment
     if str(site_packages) not in sys.path:
         sys.path.insert(0, str(site_packages))
-        
+
     # Inject the user's file directory so it can be imported
     if str(file_path.parent) not in sys.path:
         sys.path.insert(0, str(file_path.parent))
@@ -183,32 +187,32 @@ def init_venv(venv_path: pathlib.Path, file_path: pathlib.Path) -> None:
             importlib.reload(sys.modules[module_name])
         else:
             importlib.import_module(module_name)
-            
+
     except ModuleNotFoundError as e:
         missing_package = e.name
         # TODO: Update GUI here -> f"Installing missing package: {missing_package}..."
         print(f"Missing library '{missing_package}'. Installing via venv...")
-        
+
         try:
             # Run installation using the venv's Python executable
             subprocess.check_call([str(python_exe), "-m", "pip", "install", missing_package])
-            
+
             # Retry importing the module after installation
             if module_name in sys.modules:
                 importlib.reload(sys.modules[module_name])
             else:
                 importlib.import_module(module_name)
-                
+
             # TODO: Update GUI here -> "Installation complete!"
             print(f"Successfully installed and loaded '{missing_package}'.")
 
         except ModuleNotFoundError as e:
             file_path.unlink()  # Remove the user code file if the import fails
-            raise RuntimeError(f"Failed to import '{missing_package}' even after installation: {e}") 
+            raise RuntimeError(f"Failed to import '{missing_package}' even after installation: {e}")
         except subprocess.CalledProcessError:
             file_path.unlink()  # Remove the user code file if the installation fails
-            raise RuntimeError(f"Failed to install '{missing_package}'.") # TODO: Show error in GUI
-            
+            raise RuntimeError(f"Failed to install '{missing_package}'.")  # TODO: Show error in GUI
+
     except Exception as e:
         raise RuntimeError(f"Unexpected error: {e}")
 
@@ -229,9 +233,9 @@ def extract_import_aliases(file_path: pathlib.Path) -> dict[str, str]:
     """
     aliases = {}
     try:
-        with open(file_path, 'r', encoding='utf-8') as file:
+        with open(file_path, "r", encoding="utf-8") as file:
             tree = ast.parse(file.read())
-            
+
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:
@@ -241,8 +245,9 @@ def extract_import_aliases(file_path: pathlib.Path) -> dict[str, str]:
                         aliases[alias.name] = alias.name  # No alias, use the library name itself
     except Exception as e:
         raise ValueError(f"Error parsing file {file_path}: {e}")
-        
+
     return aliases
+
 
 def sync_import_aliases(user_path: pathlib.Path) -> None:
     """
@@ -254,7 +259,7 @@ def sync_import_aliases(user_path: pathlib.Path) -> None:
     user_path : pathlib.Path
         The path to the user's file serving as the source of truth.
     """
-    
+
     pep_path = pathlib.Path(pep8_file_path)
 
     # 1. חילוץ המילונים משני הקבצים
@@ -268,14 +273,14 @@ def sync_import_aliases(user_path: pathlib.Path) -> None:
     libraries_to_update = {}
     for lib_name, user_alias in user_aliases.items():
         if lib_name in pep8_aliases and pep8_aliases[lib_name] != user_alias:
-            libraries_to_update[lib_name] = (user_alias,pep8_aliases[lib_name])
+            libraries_to_update[lib_name] = (user_alias, pep8_aliases[lib_name])
 
     if not libraries_to_update:
         return  # הקבצים כבר זהים, חוסכים פעולות כתיבה (I/O) מיותרות!
 
     # 3. קריאת קובץ הייחוס לעדכון
     try:
-        with open(user_path, 'r', encoding='utf-8') as file:
+        with open(user_path, "r", encoding="utf-8") as file:
             content = file.read()
 
         # 4. ביצוע החלפה כירורגית ויעילה בעזרת Regex
@@ -289,16 +294,16 @@ def sync_import_aliases(user_path: pathlib.Path) -> None:
                 content = content.replace(f"{old_alias}", f"{new_alias}")
 
         # 5. שמירת הקובץ המעודכן
-        with open(user_path, 'w', encoding='utf-8') as file:
+        with open(user_path, "w", encoding="utf-8") as file:
             file.write(content)
-                    
+
     except Exception as e:
         raise ValueError(f"Failed to update reference file: {e}")
 
 
 def process_and_run_with_venv(code_text: str, venv_path: pathlib.Path) -> None:
     """
-    Validates syntax, sets up a local venv, installs missing dependencies, 
+    Validates syntax, sets up a local venv, installs missing dependencies,
     and dynamically loads the user code.
 
     Parameters
@@ -313,13 +318,12 @@ def process_and_run_with_venv(code_text: str, venv_path: pathlib.Path) -> None:
     # Step 1: Validate syntax before doing anything else
     f_name = create_user_code_file(code_text)
     # Step 2: Ensure virtual environment exists
-    
-    
-    try:        
+
+    try:
         create_venv(venv_path)
         user_path = get_code_path(f_name)
         # Step 3: Get paths to the Python executable and site-packages in the venv
         init_venv(venv_path, user_path)
         sync_import_aliases(user_path)
-    except Exception as e:
-        user_path.unlink() # Remove the user code file if any step fails
+    except Exception:
+        user_path.unlink()  # Remove the user code file if any step fails

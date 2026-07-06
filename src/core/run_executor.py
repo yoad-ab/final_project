@@ -14,14 +14,15 @@ result is scientifically "good".
 import time
 from datetime import datetime
 
+# avoid a circular import: import RunRepository lazily inside execute_recipe
+from typing import TYPE_CHECKING
+
 from .analysis import AnalysisCompletionStatus, AnalysisOutput
 from .analysis_runner import AnalysisExecutor
 from .artifacts import ArtifactManager
 from .recipe import Recipe
 from .run import RunRecord, RunStatus, StepRecord
 
-# avoid a circular import: import RunRepository lazily inside execute_recipe
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ...storage.run_repository import RunRepository
 
@@ -86,11 +87,7 @@ def execute_recipe(
                 out = executor.run_analysis_on_output(analysis, prev_output, run_folder)
 
             duration_ms = int((time.perf_counter() - t0) * 1000)
-            step_status = (
-                RunStatus.SUCCESS
-                if out.status == AnalysisCompletionStatus.SUCCESS
-                else RunStatus.FAILURE
-            )
+            step_status = RunStatus.SUCCESS if out.status == AnalysisCompletionStatus.SUCCESS else RunStatus.FAILURE
             steps.append(
                 StepRecord(
                     step_index=index,
