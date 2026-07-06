@@ -191,9 +191,10 @@ interface AddStepProps {
   onQueryChange: (q: string) => void
   onSelect: (a: AnalysisDTO, i: number) => void
   analyses: AnalysisDTO[]
+  primary?: boolean
 }
 
-function AddStep({ insertIndex, activeIndex, query, onOpen, onClose, onQueryChange, onSelect, analyses }: AddStepProps) {
+function AddStep({ insertIndex, activeIndex, query, onOpen, onClose, onQueryChange, onSelect, analyses, primary }: AddStepProps) {
   const isOpen = activeIndex === insertIndex
 
   const filtered = analyses.filter(a =>
@@ -202,7 +203,10 @@ function AddStep({ insertIndex, activeIndex, query, onOpen, onClose, onQueryChan
 
   if (!isOpen) {
     return (
-      <button onClick={() => onOpen(insertIndex)} className="add-step-btn">
+      <button
+        onClick={() => onOpen(insertIndex)}
+        className={primary ? 'add-step-btn add-step-btn--primary' : 'add-step-btn'}
+      >
         <Plus size={11} />
         Add Step
       </button>
@@ -291,7 +295,7 @@ function RecipeCanvas({ steps, allAnalyses, onReorder, onRemove, onInsert }: Can
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
         <GitFork size={30} strokeWidth={1.2} style={{ color: 'var(--color-text-3)' }} />
         <span style={{ fontSize: 14, color: 'var(--color-text-2)' }}>No steps yet</span>
-        <AddStep insertIndex={0} {...addStepProps} />
+        <AddStep insertIndex={0} {...addStepProps} primary />
       </div>
     )
   }
@@ -343,10 +347,6 @@ function RecipeHeader({ titleNode, stepCount, isDirty, isSaving, saveOk, saveErr
     }}>
       <GitFork size={14} style={{ color: '#34d399', flexShrink: 0 }} strokeWidth={2} />
       <div style={{ flex: 1, minWidth: 0 }}>{titleNode}</div>
-
-      <span style={{ fontSize: 11, color: 'var(--color-text-3)', flexShrink: 0 }}>
-        {stepCount} step{stepCount !== 1 ? 's' : ''}
-      </span>
 
       {saveError && (
         <span style={{ fontSize: 11, color: 'var(--color-red)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

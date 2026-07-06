@@ -1,5 +1,6 @@
 import ast
 import importlib
+import importlib.util
 import subprocess
 import sys
 import pathlib
@@ -92,6 +93,38 @@ def return_function_name(code_string: str) -> str:
         if isinstance(node, ast.FunctionDef) and expected_name == node.name:
             return node.name
     raise ValueError(f"Function name '{expected_name}' not found in the code.")
+
+def check_imports(code_string: str) -> tuple[bool, str | None]:
+    """
+    Checks whether all top-level imports in the code are resolvable (installed).
+    Returns (True, None) if all imports are available, or (False, error_message) if any are missing.
+    Does not execute any code or write any files.
+    """
+    try:
+        tree = ast.parse(code_string)
+    except SyntaxError:
+        return True, None  # syntax errors are reported separately
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                top_level = alias.name.split('.')[0]
+                try:
+                    if importlib.util.find_spec(top_level) is None:
+                        return False, f"Module '{alias.name}' is not installed"
+                except (ModuleNotFoundError, ValueError):
+                    return False, f"Module '{alias.name}' is not installed"
+        elif isinstance(node, ast.ImportFrom):
+            if node.module and node.level == 0:  # absolute imports only
+                top_level = node.module.split('.')[0]
+                try:
+                    if importlib.util.find_spec(top_level) is None:
+                        return False, f"Module '{node.module}' is not installed"
+                except (ModuleNotFoundError, ValueError):
+                    return False, f"Module '{node.module}' is not installed"
+
+    return True, None
+
 
 def create_user_code_file(code_text: str) -> str:
     """

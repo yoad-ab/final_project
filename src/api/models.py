@@ -40,6 +40,17 @@ class DataFileContent(BaseModel):
     truncated: bool
 
 
+class AnalysisValidate(BaseModel):
+    code: str
+    type_id: str = "python"
+
+
+class AnalysisValidateResult(BaseModel):
+    valid: bool
+    error: str | None = None
+    function_name: str | None = None
+
+
 class AnalysisCreate(BaseModel):
     analysis_id: str
     type_id: str

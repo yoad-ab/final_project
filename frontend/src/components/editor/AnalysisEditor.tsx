@@ -57,6 +57,74 @@ function CenteredError({ message }: { message: string }) {
   )
 }
 
+// ── Validate result modal ─────────────────────────────────────────────────
+
+function ValidateResultModal({
+  result,
+  open,
+  onClose,
+}: {
+  result: ValidateResult | null
+  open: boolean
+  onClose: () => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle
+            style={{ display: 'flex', alignItems: 'center', gap: 8,
+              color: result?.valid ? 'var(--color-green)' : 'var(--color-red)' }}
+          >
+            {result?.valid
+              ? <Check size={16} strokeWidth={2.5} />
+              : <XCircle size={16} />}
+            {result?.valid ? 'Validation passed' : 'Validation failed'}
+          </DialogTitle>
+          {result?.valid && result.function_name && (
+            <DialogDescription>
+              Found function: <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text)' }}>{result.function_name}</code>
+            </DialogDescription>
+          )}
+        </DialogHeader>
+
+        {!result?.valid && result?.error && (
+          <pre
+            style={{
+              margin: 0,
+              padding: '10px 12px',
+              borderRadius: 6,
+              background: 'var(--color-bg-surface)',
+              border: '1px solid var(--color-border)',
+              fontSize: 12,
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--color-red)',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}
+          >
+            {result.error}
+          </pre>
+        )}
+
+        <DialogFooter>
+          <DialogClose asChild>
+            <button
+              style={{
+                padding: '6px 16px', borderRadius: 5, border: 'none',
+                background: 'var(--color-bg-hover)', color: 'var(--color-text)',
+                fontSize: 13, fontWeight: 500, cursor: 'pointer',
+              }}
+            >
+              Close
+            </button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ── Header ────────────────────────────────────────────────────────────────
 
 interface HeaderProps {
@@ -73,8 +141,6 @@ interface HeaderProps {
   canSave?: boolean
   onValidate?: () => void
   isValidating?: boolean
-  validateOk?: boolean
-  validateError?: string
 }
 
 function EditorHeader({
@@ -91,8 +157,6 @@ function EditorHeader({
   canSave = true,
   onValidate,
   isValidating,
-  validateOk,
-  validateError,
 }: HeaderProps) {
   const saveDisabled = isSaving || !canSave || (!isDirty && saveLabel === 'Save')
 
@@ -150,13 +214,6 @@ function EditorHeader({
         </span>
       )}
 
-      {/* Validate error */}
-      {validateError && (
-        <span style={{ fontSize: 11, color: 'var(--color-red)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={validateError}>
-          {validateError}
-        </span>
-      )}
-
       {/* Save error */}
       {saveError && (
         <span style={{ fontSize: 11, color: 'var(--color-red)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -175,30 +232,17 @@ function EditorHeader({
             gap: 5,
             padding: '5px 12px',
             borderRadius: 5,
-            border: '1px solid',
-            borderColor: validateOk
-              ? 'var(--color-green)'
-              : validateError
-                ? 'var(--color-red)'
-                : 'var(--color-border)',
+            border: '1px solid var(--color-border)',
             fontSize: 13,
             fontWeight: 500,
             cursor: isValidating ? 'default' : 'pointer',
             background: 'transparent',
-            color: validateOk
-              ? 'var(--color-green)'
-              : validateError
-                ? 'var(--color-red)'
-                : 'var(--color-text-2)',
-            transition: 'border-color 0.15s, color 0.15s',
+            color: 'var(--color-text-2)',
+            opacity: isValidating ? 0.6 : 1,
           }}
         >
-          {isValidating ? (
-            <Loader2 size={13} className="animate-spin" />
-          ) : validateOk ? (
-            <Check size={13} strokeWidth={2.5} />
-          ) : null}
-          {isValidating ? 'Validating…' : validateOk ? 'Valid' : 'Validate'}
+          {isValidating && <Loader2 size={13} className="animate-spin" />}
+          {isValidating ? 'Validating…' : 'Validate'}
         </button>
       )}
 
@@ -244,14 +288,13 @@ function ExistingAnalysisEditor({ tabId, analysisId }: { tabId: string; analysis
   const updateMutation = useUpdateAnalysis()
   const validateMutation = useValidateCode()
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const validateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { markDirty, markClean } = useDirtyStore()
 
   // Local edit buffer; undefined = in sync with server
   const [localCode, setLocalCode] = useState<string | undefined>(undefined)
   const [saveOk, setSaveOk] = useState(false)
-  const [validateOk, setValidateOk] = useState(false)
-  const [validateError, setValidateError] = useState<string | undefined>(undefined)
+  const [validateResult, setValidateResult] = useState<ValidateResult | null>(null)
+  const [validateModalOpen, setValidateModalOpen] = useState(false)
 
   // Keep a ref to the save handler so Monaco's Ctrl+S always calls fresh version
   const handleSaveRef = useRef<() => void>(() => {})
@@ -293,21 +336,11 @@ function ExistingAnalysisEditor({ tabId, analysisId }: { tabId: string; analysis
   }
 
   function handleValidate() {
-    setValidateOk(false)
-    setValidateError(undefined)
-    if (validateTimerRef.current) clearTimeout(validateTimerRef.current)
     validateMutation.mutate(
       { code: currentCode, typeId: data.type_id },
       {
-        onSuccess: (result) => {
-          if (result.valid) {
-            setValidateOk(true)
-            validateTimerRef.current = setTimeout(() => setValidateOk(false), 2500)
-          } else {
-            setValidateError(result.error ?? 'Validation failed')
-          }
-        },
-        onError: (err) => setValidateError((err as Error).message),
+        onSuccess: (result) => { setValidateResult(result); setValidateModalOpen(true) },
+        onError: (err) => { setValidateResult({ valid: false, error: (err as Error).message }); setValidateModalOpen(true) },
       },
     )
   }
@@ -316,6 +349,11 @@ function ExistingAnalysisEditor({ tabId, analysisId }: { tabId: string; analysis
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      <ValidateResultModal
+        result={validateResult}
+        open={validateModalOpen}
+        onClose={() => setValidateModalOpen(false)}
+      />
       <EditorHeader
         titleNode={
           <span style={{ fontSize: 13, color: 'var(--color-text-2)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -331,8 +369,6 @@ function ExistingAnalysisEditor({ tabId, analysisId }: { tabId: string; analysis
         onSave={handleSave}
         onValidate={handleValidate}
         isValidating={validateMutation.isPending}
-        validateOk={validateOk}
-        validateError={validateError}
       />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
@@ -366,10 +402,9 @@ function NewAnalysisEditor({ tabId }: { tabId: string }) {
   const closeTab = useTabsStore((s) => s.closeTab)
   const { markDirty, markClean } = useDirtyStore()
   const [saveOk, setSaveOk] = useState(false)
-  const [validateOk, setValidateOk] = useState(false)
-  const [validateError, setValidateError] = useState<string | undefined>(undefined)
+  const [validateResult, setValidateResult] = useState<ValidateResult | null>(null)
+  const [validateModalOpen, setValidateModalOpen] = useState(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const validateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const handleSaveRef = useRef<() => void>(() => {})
 
   const isDirtyNew = Boolean(draft.code || draft.analysis_id)
@@ -409,21 +444,11 @@ function NewAnalysisEditor({ tabId }: { tabId: string }) {
   }
 
   function handleValidateNew() {
-    setValidateOk(false)
-    setValidateError(undefined)
-    if (validateTimerRef.current) clearTimeout(validateTimerRef.current)
     validateMutation.mutate(
       { code: draft.code, typeId: draft.type_id },
       {
-        onSuccess: (result) => {
-          if (result.valid) {
-            setValidateOk(true)
-            validateTimerRef.current = setTimeout(() => setValidateOk(false), 2500)
-          } else {
-            setValidateError(result.error ?? 'Validation failed')
-          }
-        },
-        onError: (err) => setValidateError((err as Error).message),
+        onSuccess: (result) => { setValidateResult(result); setValidateModalOpen(true) },
+        onError: (err) => { setValidateResult({ valid: false, error: (err as Error).message }); setValidateModalOpen(true) },
       },
     )
   }
@@ -432,6 +457,11 @@ function NewAnalysisEditor({ tabId }: { tabId: string }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      <ValidateResultModal
+        result={validateResult}
+        open={validateModalOpen}
+        onClose={() => setValidateModalOpen(false)}
+      />
       <EditorHeader
         titleNode={
           <input
@@ -469,8 +499,6 @@ function NewAnalysisEditor({ tabId }: { tabId: string }) {
         canSave={canSave}
         onValidate={handleValidateNew}
         isValidating={validateMutation.isPending}
-        validateOk={validateOk}
-        validateError={validateError}
       />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>

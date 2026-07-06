@@ -1,4 +1,4 @@
-import { Database, GitBranch, History, LayoutGrid, Search } from 'lucide-react'
+import { Database, GitFork, History, LayoutGrid, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
@@ -6,7 +6,7 @@ export type SidebarSection = 'analyses' | 'recipes' | 'data-sources' | 'search' 
 
 const ITEMS: { id: SidebarSection; icon: React.ReactNode; label: string }[] = [
   { id: 'analyses',     icon: <LayoutGrid size={18} />, label: 'Analyses' },
-  { id: 'recipes',      icon: <GitBranch size={18} />,  label: 'Recipes' },
+  { id: 'recipes',      icon: <GitFork size={18} />,    label: 'Recipes' },
   { id: 'data-sources', icon: <Database size={18} />,   label: 'Data Sources' },
   { id: 'search',       icon: <Search size={18} />,      label: 'Search' },
 ]
