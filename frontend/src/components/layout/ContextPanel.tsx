@@ -88,10 +88,15 @@ function NewItemButton({ section }: { section: 'analyses' | 'recipes' }) {
   return (
     <button
       onClick={handleClick}
-      style={{ background: 'none', border: 'none', color: 'var(--color-text-3)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '2px 4px', borderRadius: 4 }}
-      title={`New ${section === 'analyses' ? 'analysis' : 'recipe'}`}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 4,
+        background: 'var(--color-accent)', border: 'none', color: '#fff',
+        cursor: 'pointer', fontSize: 11, fontWeight: 600, lineHeight: 1,
+        padding: '3px 8px', borderRadius: 4,
+      }}
     >
-      +
+      <Plus size={11} strokeWidth={2.5} />
+      New
     </button>
   )
 }
@@ -107,7 +112,12 @@ function AnalysesList() {
   if (isError)   return <PanelError message={(error as Error).message} />
 
   if (!data?.length) {
-    return <PlaceholderPanel label="No analyses yet — create one with +" />
+    return (
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--color-text-3)', padding: '0 16px', textAlign: 'center' }}>
+        <Inbox size={28} strokeWidth={1.5} />
+        <span style={{ fontSize: 13 }}>No analyses created</span>
+      </div>
+    )
   }
 
   return (
