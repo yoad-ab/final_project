@@ -19,6 +19,18 @@ export const updateAnalysis = (id: string, params: Record<string, unknown>) =>
 export const deleteAnalysis = (id: string) =>
   apiFetch<void>(`/analyses/${id}`, { method: 'DELETE' })
 
+export const renameAnalysis = (id: string, newId: string) =>
+  apiFetch<AnalysisDTO>(`/analyses/${id}`, { method: 'PATCH', body: JSON.stringify({ analysis_id: newId }) })
+
+export interface ValidateResult {
+  valid: boolean
+  error?: string
+  function_name?: string
+}
+
+export const validateCode = (code: string, typeId: string) =>
+  apiFetch<ValidateResult>('/analyses/validate', { method: 'POST', body: JSON.stringify({ code, type_id: typeId }) })
+
 // ── query keys ────────────────────────────────────────────────────────────
 
 export const analysisKeys = {
@@ -68,6 +80,24 @@ export function useDeleteAnalysis() {
   return useMutation({
     mutationFn: deleteAnalysis,
     onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: analysisKeys.all() })
+      qc.removeQueries({ queryKey: analysisKeys.detail(id) })
+    },
+  })
+}
+
+export function useValidateCode() {
+  return useMutation({
+    mutationFn: ({ code, typeId }: { code: string; typeId: string }) =>
+      validateCode(code, typeId),
+  })
+}
+
+export function useRenameAnalysis() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, newId }: { id: string; newId: string }) => renameAnalysis(id, newId),
+    onSuccess: (_data, { id }) => {
       qc.invalidateQueries({ queryKey: analysisKeys.all() })
       qc.removeQueries({ queryKey: analysisKeys.detail(id) })
     },

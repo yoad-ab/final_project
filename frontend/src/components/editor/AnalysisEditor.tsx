@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import Editor, { type OnMount, type BeforeMount } from '@monaco-editor/react'
-import { FileCode2, Terminal, Loader2, AlertCircle, Check } from 'lucide-react'
-import { useAnalysis, useCreateAnalysis, useUpdateAnalysis } from '@/api/analyses'
+import { Loader2, AlertCircle, Check, XCircle } from 'lucide-react'
+import { useAnalysis, useCreateAnalysis, useUpdateAnalysis, useValidateCode, type ValidateResult } from '@/api/analyses'
 import { useDraftsStore, type AnalysisDraft } from '@/store/drafts'
 import { useTabsStore, makeTabId } from '@/store/tabs'
 import { useDirtyStore } from '@/store/dirty'
 import { ensureMonacoTheme } from '@/lib/monacoTheme'
+import { AnalysisHintDrawer } from './AnalysisHintDrawer'
+import { LangIcon, PythonIcon, BashIcon } from '@/components/icons/LangIcons'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog'
 
 const beforeMount: BeforeMount = (monaco) => ensureMonacoTheme(monaco)
 
@@ -67,6 +71,10 @@ interface HeaderProps {
   onSave: () => void
   saveLabel?: string
   canSave?: boolean
+  onValidate?: () => void
+  isValidating?: boolean
+  validateOk?: boolean
+  validateError?: string
 }
 
 function EditorHeader({
@@ -81,10 +89,11 @@ function EditorHeader({
   onSave,
   saveLabel = 'Save',
   canSave = true,
+  onValidate,
+  isValidating,
+  validateOk,
+  validateError,
 }: HeaderProps) {
-  const TypeIcon = typeId === 'shell' ? Terminal : FileCode2
-  const typeColor = typeId === 'shell' ? 'var(--color-badge-sh)' : 'var(--color-badge-py)'
-
   const saveDisabled = isSaving || !canSave || (!isDirty && saveLabel === 'Save')
 
   return (
@@ -100,56 +109,97 @@ function EditorHeader({
         flexShrink: 0,
       }}
     >
-      <TypeIcon size={14} style={{ color: typeColor, flexShrink: 0 }} strokeWidth={2} />
+      <LangIcon typeId={typeId} size={15} />
 
       {/* Title / ID input */}
       <div style={{ flex: 1, minWidth: 0 }}>{titleNode}</div>
 
       {/* Type selector or badge */}
       {typeEditable ? (
-        <select
-          value={typeId}
-          onChange={(e) => onTypeChange?.(e.target.value as 'python' | 'shell')}
-          style={{
-            background: 'var(--color-bg-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 4,
-            color: typeColor,
-            fontSize: 11,
-            fontWeight: 600,
-            padding: '2px 6px',
-            cursor: 'pointer',
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            outline: 'none',
-          }}
-        >
-          <option value="python">Python</option>
-          <option value="shell">Shell</option>
-        </select>
+        <Select value={typeId} onValueChange={(v) => onTypeChange?.(v as 'python' | 'shell')}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="python">
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <PythonIcon size={12} />
+                Python
+              </span>
+            </SelectItem>
+            <SelectItem value="shell" disabled>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <BashIcon size={12} />
+                Shell
+                <span style={{ fontSize: 10, color: 'var(--color-text-3)', marginLeft: 2 }}>(soon)</span>
+              </span>
+            </SelectItem>
+          </SelectContent>
+        </Select>
       ) : (
         <span
           style={{
-            fontSize: 10,
-            fontWeight: 600,
-            padding: '2px 6px',
-            borderRadius: 3,
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
+            display: 'flex', alignItems: 'center', gap: 5,
+            fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 3,
             background: typeId === 'python' ? 'rgba(59,130,246,0.15)' : 'rgba(16,185,129,0.15)',
-            color: typeColor,
             flexShrink: 0,
           }}
         >
-          {typeId === 'python' ? 'py' : 'sh'}
+          <LangIcon typeId={typeId} size={11} />
+          {typeId === 'python' ? 'Python' : 'Shell'}
         </span>
       )}
 
-      {/* Error */}
+      {/* Validate error */}
+      {validateError && (
+        <span style={{ fontSize: 11, color: 'var(--color-red)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={validateError}>
+          {validateError}
+        </span>
+      )}
+
+      {/* Save error */}
       {saveError && (
         <span style={{ fontSize: 11, color: 'var(--color-red)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {saveError}
         </span>
+      )}
+
+      {/* Validate button — Python only */}
+      {typeId === 'python' && onValidate && (
+        <button
+          onClick={onValidate}
+          disabled={isValidating}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '5px 12px',
+            borderRadius: 5,
+            border: '1px solid',
+            borderColor: validateOk
+              ? 'var(--color-green)'
+              : validateError
+                ? 'var(--color-red)'
+                : 'var(--color-border)',
+            fontSize: 13,
+            fontWeight: 500,
+            cursor: isValidating ? 'default' : 'pointer',
+            background: 'transparent',
+            color: validateOk
+              ? 'var(--color-green)'
+              : validateError
+                ? 'var(--color-red)'
+                : 'var(--color-text-2)',
+            transition: 'border-color 0.15s, color 0.15s',
+          }}
+        >
+          {isValidating ? (
+            <Loader2 size={13} className="animate-spin" />
+          ) : validateOk ? (
+            <Check size={13} strokeWidth={2.5} />
+          ) : null}
+          {isValidating ? 'Validating…' : validateOk ? 'Valid' : 'Validate'}
+        </button>
       )}
 
       {/* Save button */}
@@ -160,31 +210,26 @@ function EditorHeader({
           display: 'flex',
           alignItems: 'center',
           gap: 5,
-          padding: '4px 10px',
-          borderRadius: 4,
+          padding: '5px 14px',
+          borderRadius: 5,
           border: 'none',
-          fontSize: 12,
-          fontWeight: 500,
+          fontSize: 13,
+          fontWeight: 600,
           cursor: saveDisabled ? 'default' : 'pointer',
           background: saveOk
-            ? 'rgba(34,197,94,0.2)'
-            : saveDisabled
-              ? 'var(--color-bg-hover)'
-              : 'rgba(124,106,247,0.25)',
-          color: saveOk
             ? 'var(--color-green)'
             : saveDisabled
-              ? 'var(--color-text-3)'
+              ? 'var(--color-bg-hover)'
               : 'var(--color-accent)',
-          transition: 'background 0.15s, color 0.15s',
+          color: saveDisabled && !saveOk ? 'var(--color-text-3)' : '#fff',
+          transition: 'background 0.15s, opacity 0.15s',
+          opacity: saveDisabled && !saveOk ? 0.5 : 1,
         }}
       >
         {isSaving ? (
-          <Loader2 size={12} className="animate-spin" />
+          <Loader2 size={13} className="animate-spin" />
         ) : saveOk ? (
-          <Check size={12} strokeWidth={2.5} />
-        ) : isDirty ? (
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', flexShrink: 0 }} />
+          <Check size={13} strokeWidth={2.5} />
         ) : null}
         {isSaving ? 'Saving…' : saveOk ? 'Saved' : saveLabel}
       </button>
@@ -197,12 +242,16 @@ function EditorHeader({
 function ExistingAnalysisEditor({ tabId, analysisId }: { tabId: string; analysisId: string }) {
   const { data, isLoading, isError, error } = useAnalysis(analysisId)
   const updateMutation = useUpdateAnalysis()
+  const validateMutation = useValidateCode()
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const validateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { markDirty, markClean } = useDirtyStore()
 
   // Local edit buffer; undefined = in sync with server
   const [localCode, setLocalCode] = useState<string | undefined>(undefined)
   const [saveOk, setSaveOk] = useState(false)
+  const [validateOk, setValidateOk] = useState(false)
+  const [validateError, setValidateError] = useState<string | undefined>(undefined)
 
   // Keep a ref to the save handler so Monaco's Ctrl+S always calls fresh version
   const handleSaveRef = useRef<() => void>(() => {})
@@ -243,6 +292,26 @@ function ExistingAnalysisEditor({ tabId, analysisId }: { tabId: string; analysis
     )
   }
 
+  function handleValidate() {
+    setValidateOk(false)
+    setValidateError(undefined)
+    if (validateTimerRef.current) clearTimeout(validateTimerRef.current)
+    validateMutation.mutate(
+      { code: currentCode, typeId: data.type_id },
+      {
+        onSuccess: (result) => {
+          if (result.valid) {
+            setValidateOk(true)
+            validateTimerRef.current = setTimeout(() => setValidateOk(false), 2500)
+          } else {
+            setValidateError(result.error ?? 'Validation failed')
+          }
+        },
+        onError: (err) => setValidateError((err as Error).message),
+      },
+    )
+  }
+
   handleSaveRef.current = handleSave
 
   return (
@@ -260,18 +329,27 @@ function ExistingAnalysisEditor({ tabId, analysisId }: { tabId: string; analysis
         saveOk={saveOk}
         saveError={updateMutation.isError ? (updateMutation.error as Error).message : undefined}
         onSave={handleSave}
+        onValidate={handleValidate}
+        isValidating={validateMutation.isPending}
+        validateOk={validateOk}
+        validateError={validateError}
       />
-      <Editor
-        key={analysisId}
-        height="100%"
-        language={lang}
-        beforeMount={beforeMount}
-        theme="pinpoint-dark"
-        defaultValue={serverCode}
-        onChange={(v) => setLocalCode(v ?? '')}
-        onMount={onMount}
-        options={MONACO_OPTIONS}
-      />
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+        <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
+          <Editor
+            key={analysisId}
+            height="100%"
+            language={lang}
+            beforeMount={beforeMount}
+            theme="pinpoint-dark"
+            defaultValue={serverCode}
+            onChange={(v) => setLocalCode(v ?? '')}
+            onMount={onMount}
+            options={MONACO_OPTIONS}
+          />
+        </div>
+        {data.type_id === 'python' && <AnalysisHintDrawer />}
+      </div>
     </div>
   )
 }
@@ -283,11 +361,15 @@ function NewAnalysisEditor({ tabId }: { tabId: string }) {
   const draft: AnalysisDraft = drafts[tabId] ?? { analysis_id: '', type_id: 'python', code: '' }
 
   const createMutation = useCreateAnalysis()
+  const validateMutation = useValidateCode()
   const openTab  = useTabsStore((s) => s.openTab)
   const closeTab = useTabsStore((s) => s.closeTab)
   const { markDirty, markClean } = useDirtyStore()
   const [saveOk, setSaveOk] = useState(false)
+  const [validateOk, setValidateOk] = useState(false)
+  const [validateError, setValidateError] = useState<string | undefined>(undefined)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const validateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const handleSaveRef = useRef<() => void>(() => {})
 
   const isDirtyNew = Boolean(draft.code || draft.analysis_id)
@@ -326,6 +408,26 @@ function NewAnalysisEditor({ tabId }: { tabId: string }) {
     )
   }
 
+  function handleValidateNew() {
+    setValidateOk(false)
+    setValidateError(undefined)
+    if (validateTimerRef.current) clearTimeout(validateTimerRef.current)
+    validateMutation.mutate(
+      { code: draft.code, typeId: draft.type_id },
+      {
+        onSuccess: (result) => {
+          if (result.valid) {
+            setValidateOk(true)
+            validateTimerRef.current = setTimeout(() => setValidateOk(false), 2500)
+          } else {
+            setValidateError(result.error ?? 'Validation failed')
+          }
+        },
+        onError: (err) => setValidateError((err as Error).message),
+      },
+    )
+  }
+
   handleSaveRef.current = handleSave
 
   return (
@@ -334,20 +436,25 @@ function NewAnalysisEditor({ tabId }: { tabId: string }) {
         titleNode={
           <input
             autoFocus
+
             value={draft.analysis_id}
             onChange={(e) => upsertDraft(tabId, { analysis_id: e.target.value })}
             placeholder="analysis-name"
             spellCheck={false}
             style={{
-              background: 'transparent',
-              border: 'none',
+              background: 'var(--color-bg-surface)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 5,
               outline: 'none',
               fontSize: 13,
               color: 'var(--color-text)',
               fontFamily: 'var(--font-mono)',
               width: '100%',
               caretColor: 'var(--color-accent)',
+              padding: '3px 8px',
             }}
+            onFocus={e => (e.currentTarget.style.borderColor = 'var(--color-accent)')}
+            onBlur={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
           />
         }
         typeId={draft.type_id}
@@ -360,18 +467,27 @@ function NewAnalysisEditor({ tabId }: { tabId: string }) {
         onSave={handleSave}
         saveLabel="Create"
         canSave={canSave}
+        onValidate={handleValidateNew}
+        isValidating={validateMutation.isPending}
+        validateOk={validateOk}
+        validateError={validateError}
       />
-      <Editor
-        key={`${tabId}-${draft.type_id}`}
-        height="100%"
-        language={lang}
-        beforeMount={beforeMount}
-        theme="pinpoint-dark"
-        defaultValue={draft.code}
-        onChange={(v) => upsertDraft(tabId, { code: v ?? '' })}
-        onMount={onMount}
-        options={MONACO_OPTIONS}
-      />
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+        <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
+          <Editor
+            key={`${tabId}-${draft.type_id}`}
+            height="100%"
+            language={lang}
+            beforeMount={beforeMount}
+            theme="pinpoint-dark"
+            defaultValue={draft.code}
+            onChange={(v) => upsertDraft(tabId, { code: v ?? '' })}
+            onMount={onMount}
+            options={MONACO_OPTIONS}
+          />
+        </div>
+        {draft.type_id === 'python' && <AnalysisHintDrawer />}
+      </div>
     </div>
   )
 }
