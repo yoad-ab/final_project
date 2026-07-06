@@ -1,7 +1,8 @@
-from ..storage.artifacts import ArtifactManager
-from .analysis import Analysis, AnalysisInput, AnalysisOutput
-from .recipe import Recipe
 from pathlib import Path
+
+from .analysis import Analysis, AnalysisInput, AnalysisOutput
+from .artifacts import ArtifactManager
+from .recipe import Recipe
 
 
 class AnalysisExecutor(object):
@@ -10,7 +11,7 @@ class AnalysisExecutor(object):
 
     def run_analysis_on_data(self, analysis: Analysis, experiment_id: str, data_id: str, run_folder: Path) -> AnalysisOutput:
         raw_data_dir = self.artifact_manager.get_raw_data_directory(experiment_id, data_id)
-        #output_dir = self.artifact_manager.get_analysis_output_directory(analysis)
+        # output_dir = self.artifact_manager.get_analysis_output_directory(analysis)
         output_dir = run_folder
 
         analysis_input = AnalysisInput(raw_data_dir, output_dir, None, None)
@@ -19,8 +20,8 @@ class AnalysisExecutor(object):
         return analysis_output
 
     def run_analysis_on_output(self, analysis: Analysis, previous_run: AnalysisOutput, run_folder: Path) -> AnalysisOutput:
-        #input_dir = self.artifact_manager.get_analysis_output_directory(previous_run.analysis)
-        #output_dir = self.artifact_manager.get_analysis_output_directory(analysis)
+        # input_dir = self.artifact_manager.get_analysis_output_directory(previous_run.analysis)
+        # output_dir = self.artifact_manager.get_analysis_output_directory(analysis)
         input_dir = run_folder
         output_dir = run_folder
 
@@ -30,7 +31,8 @@ class AnalysisExecutor(object):
         return analysis_output
 
     def run_recipe(self, recipe: Recipe, experiment_id: str, data_id: str, run_folder: Path) -> AnalysisOutput:
-        # TODO this should return something richer than only the last analysis' output
+        # 1. copy all files from raw data dir (get_raw_data_directory?) -> run_folder
+        # 2. run all analyses in run folder
 
         first_analysis, *rest_of_recipe = recipe.analyses
 
