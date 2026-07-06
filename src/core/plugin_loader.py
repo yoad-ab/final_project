@@ -2,7 +2,6 @@ import importlib.util
 import inspect
 from pathlib import Path
 
-
 def get_function_parameters(file_path: Path, function_name: str) -> list:
     spec = importlib.util.spec_from_file_location("custom_module", file_path)
 
@@ -18,3 +17,5 @@ def get_function_parameters(file_path: Path, function_name: str) -> list:
     parameters = list(signature.parameters.keys())
 
     return parameters
+
+
