@@ -9,6 +9,7 @@ import re
 from typing import Dict
 
 user_made_code_dir = pathlib.Path(__file__).parent / 'user_made_code'  # Directory to store user code files
+pep8_file_path = "pep8_aliases_file.py"  # Reference file
 
 def get_code_path(function_name: str) -> pathlib.Path:
     """
@@ -220,7 +221,7 @@ def sync_import_aliases(user_path: pathlib.Path) -> None:
     user_path : pathlib.Path
         The path to the user's file serving as the source of truth.
     """
-    pep8_file_path = "pep8_aliases_file.py"  # Reference file
+    
     pep_path = pathlib.Path(pep8_file_path)
 
     # 1. חילוץ המילונים משני הקבצים
