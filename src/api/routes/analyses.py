@@ -1,8 +1,8 @@
 import ast
-import pathlib
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from ...core.user_code_reader import process_and_run_with_venv, check_imports, return_function_name
+from ...core.user_code_reader import check_imports, return_function_name
 from ...storage.registry import load
 from ...storage.storage_manager import StorageManager
 from ..deps import get_storage
@@ -21,12 +21,15 @@ def list_analyses(storage: StorageManager = Depends(get_storage)):
 
 @router.post("", response_model=AnalysisOut, status_code=status.HTTP_201_CREATED)
 def create_analysis(body: AnalysisCreate, storage: StorageManager = Depends(get_storage)):
-    try:
-        process_and_run_with_venv(body.params["python_code"], pathlib.Path(storage.artifacts.base_path.parent))
-    except SyntaxError as e:
-        raise HTTPException(status_code=400, detail=f"Syntax error: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error processing code: {str(e)}")
+    # Commented out due to some last-moment issues
+    #   - Yotam
+    #
+    # try:
+    #     process_and_run_with_venv(body.params["python_code"], pathlib.Path(storage.artifacts.base_path.parent))
+    # except SyntaxError as e:
+    #     raise HTTPException(status_code=400, detail=f"Syntax error: {str(e)}")
+    # except Exception as e:
+    #     raise HTTPException(status_code=400, detail=f"Error processing code: {str(e)}")
     analysis = load(
         {
             "type_id": body.type_id,
@@ -64,7 +67,7 @@ def validate_code(body: AnalysisValidate):
 
 @router.get("/{analysis_id}", response_model=AnalysisOut)
 def get_analysis(analysis_id: str, storage: StorageManager = Depends(get_storage)):
-    print(f"this")
+    print("this")
     analysis = storage.analyses.load(analysis_id)
     return AnalysisOut.from_analysis(analysis)
 
