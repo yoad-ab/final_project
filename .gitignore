@@ -25,5 +25,3 @@ run_registry.csv
 .playwright-mcp/
 *.png
 
-data/
-workspace/
