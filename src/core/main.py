@@ -57,7 +57,6 @@ class AnalysisApp:
             font=("Arial", 10, "bold")
         )
         self.history_btn.pack(side=tk.RIGHT, padx=20)
-
         # 2. Main content frame (contains list on the left, textbox on the right)
         self.main_content = tk.Frame(self.root)
         self.main_content.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
@@ -190,8 +189,8 @@ class AnalysisApp:
         artifact_manager = ArtifactManager(pathlib.Path("./data/"))
         executor = AnalysisExecutor(artifact_manager)
         
-        # Run the recipe
-        output = executor.run_recipe(recipe, "", dl.get_selected_data_id(), pathlib.Path("./data/run_folder"))
+        # Run the recipe #TODO: add data
+        output = executor.run_recipe(recipe, "", "", pathlib.Path("./data/run_folder"))
         
         # Display the output
         messagebox.showinfo("Execution Complete", f"Output: {output}")

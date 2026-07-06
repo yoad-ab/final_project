@@ -8,6 +8,11 @@ frontend/dist/
 frontend/.vite/
 frontend/*.local
 
+workspace/analyses/user_made_code/*
+workspace/data/*
+workspace/recipes/*
+
+
 # Runtime data
 docs/
 >>>>>>> 4b77e80d18bc1c621b28dbe2d65901c055ff9da0
@@ -15,6 +20,7 @@ run_registry.csv
 .DS_Store
 run_history.log
 run_registry.csv
+
 
 # MCP (Yotam's local setup)
 .playwright-mcp/

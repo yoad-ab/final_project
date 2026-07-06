@@ -8,7 +8,7 @@ import os
 import re
 from typing import Dict
 
-user_made_code_dir = pathlib.Path(__file__).parent / 'user_made_code'  # Directory to store user code files
+user_made_code_dir = pathlib.Path(__file__).parent.parent / 'workspace' / 'analyses' / 'user_made_code'  # Directory to store user code files
 pep8_file_path = "pep8_aliases_file.py"  # Reference file
 
 def get_code_path(function_name: str) -> pathlib.Path:
