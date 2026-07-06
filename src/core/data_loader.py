@@ -46,7 +46,7 @@ def load_file_to_dataframe(file_path):
         raise ValueError(f"Unsupported file extension: {file_extension}")
 
 
-def load_and_register_dataset(file_path, storage_dir="data/raw_data"):
+def load_and_register_dataset(file_path, storage_dir="storage/workspace/data"):
     """
     Load a dataset into the system.
 
