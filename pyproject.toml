@@ -7,7 +7,12 @@ name = "final_project"
 version = "0.1.0"
 description = "Final project"
 requires-python = ">=3.11"
-
+dependencies = [
+    "pandas",
+    "pytest",
+    "matplotlib",
+    "seaborn"
+]
 [tool.ruff]
 line-length = 140
 target-version = "py311"
