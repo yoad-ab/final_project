@@ -1,6 +1,6 @@
+from ..storage.artifacts import ArtifactManager
 from .analysis import Analysis, AnalysisInput, AnalysisOutput
 from .recipe import Recipe
-from ..storage.artifacts import ArtifactManager
 
 
 class AnalysisExecutor(object):

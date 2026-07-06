@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ActivityBar, type SidebarSection } from './ActivityBar'
 import { ContextPanel } from './ContextPanel'
 import { MenuBar } from './MenuBar'
@@ -6,9 +6,17 @@ import { StatusBar } from './StatusBar'
 import { EditorArea } from './EditorArea'
 import { BottomPanel } from './BottomPanel'
 import { AIDrawer } from '../assistant/AIDrawer'
+import { useWorkspace } from '@/api/workspace'
+import { useTabsStore } from '@/store/tabs'
 
 export function AppShell() {
   const [activeSection, setActiveSection] = useState<SidebarSection | null>('analyses')
+  const { data: workspace } = useWorkspace()
+  const setWorkspaceId = useTabsStore((s) => s.setWorkspaceId)
+
+  useEffect(() => {
+    if (workspace?.path) setWorkspaceId(workspace.path)
+  }, [workspace?.path, setWorkspaceId])
   const [aiOpen, setAiOpen] = useState(false)
   const [bottomOpen, setBottomOpen] = useState(false)
 

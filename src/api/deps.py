@@ -1,7 +1,7 @@
 from fastapi import Request
 
-from ..app.context import AppContext
+from ..storage.storage_manager import StorageManager
 
 
-def get_ctx(request: Request) -> AppContext:
-    return request.app.state.ctx
+def get_storage(request: Request) -> StorageManager:
+    return request.app.state.storage

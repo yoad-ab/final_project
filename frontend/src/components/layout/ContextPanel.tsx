@@ -1,18 +1,29 @@
-import { Loader2, AlertCircle } from 'lucide-react'
+import { AlertCircle, Loader2, Plus } from 'lucide-react'
 import { useAnalyses } from '@/api/analyses'
 import { useRecipes } from '@/api/recipes'
 import { cn } from '@/lib/utils'
+import { useTabsStore, makeTabId, selectActiveTab } from '@/store/tabs'
+import { DataSourceExplorer } from '@/components/data-sources/DataSourceExplorer'
 import type { SidebarSection } from './ActivityBar'
+
+function newAnalysisTabId() {
+  return makeTabId('analysis', `~new-${crypto.randomUUID().slice(0, 8)}`)
+}
+
+function newRecipeTabId() {
+  return makeTabId('recipe', `~new-${crypto.randomUUID().slice(0, 8)}`)
+}
 
 interface Props {
   section: SidebarSection
 }
 
 const TITLES: Record<SidebarSection, string> = {
-  analyses: 'Analyses',
-  recipes:  'Recipes',
-  search:   'Search',
-  history:  'History',
+  analyses:      'Analyses',
+  recipes:       'Recipes',
+  'data-sources': 'Data Sources',
+  search:        'Search',
+  history:       'History',
 }
 
 export function ContextPanel({ section }: Props) {
@@ -33,20 +44,55 @@ export function ContextPanel({ section }: Props) {
           {TITLES[section]}
         </span>
         {(section === 'analyses' || section === 'recipes') && (
-          <button
-            style={{ background: 'none', border: 'none', color: 'var(--color-text-3)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '2px 4px', borderRadius: 4 }}
-            title={`New ${TITLES[section].slice(0, -1)}`}
-          >
-            +
-          </button>
+          <NewItemButton section={section} />
         )}
+        {section === 'data-sources' && <DataSourceAddButton />}
       </div>
 
-      {section === 'analyses' && <AnalysesList />}
-      {section === 'recipes'  && <RecipesList />}
-      {section === 'search'   && <SearchPanel />}
-      {section === 'history'  && <PlaceholderPanel label="Run history coming soon" />}
+      {section === 'analyses'     && <AnalysesList />}
+      {section === 'recipes'      && <RecipesList />}
+      {section === 'data-sources' && <DataSourceExplorer />}
+      {section === 'search'       && <SearchPanel />}
+      {section === 'history'      && <PlaceholderPanel label="Run history coming soon" />}
     </div>
+  )
+}
+
+// ── Data source add button (triggers create form inside DataSourceExplorer) ──
+
+function DataSourceAddButton() {
+  return (
+    <button
+      onClick={() => {
+        const event = new CustomEvent('ds-explorer:create')
+        window.dispatchEvent(event)
+      }}
+      style={{ background: 'none', border: 'none', color: 'var(--color-text-3)', cursor: 'pointer', lineHeight: 1, padding: '2px 4px', borderRadius: 4, display: 'flex', alignItems: 'center' }}
+      title="New data source"
+    >
+      <Plus size={14} />
+    </button>
+  )
+}
+
+// ── New item button ────────────────────────────────────────────────────────
+
+function NewItemButton({ section }: { section: 'analyses' | 'recipes' }) {
+  const openTab = useTabsStore((s) => s.openTab)
+
+  function handleClick() {
+    if (section === 'analyses') openTab(newAnalysisTabId())
+    if (section === 'recipes')  openTab(newRecipeTabId())
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      style={{ background: 'none', border: 'none', color: 'var(--color-text-3)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '2px 4px', borderRadius: 4 }}
+      title={`New ${section === 'analyses' ? 'analysis' : 'recipe'}`}
+    >
+      +
+    </button>
   )
 }
 
@@ -54,6 +100,8 @@ export function ContextPanel({ section }: Props) {
 
 function AnalysesList() {
   const { data, isLoading, isError, error } = useAnalyses()
+  const openTab = useTabsStore((s) => s.openTab)
+  const activeTab = useTabsStore(selectActiveTab)
 
   if (isLoading) return <PanelLoading />
   if (isError)   return <PanelError message={(error as Error).message} />
@@ -65,13 +113,18 @@ function AnalysesList() {
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <FilterInput placeholder="Filter analyses..." />
-      {data.map(a => (
-        <ContextItem
-          key={a.analysis_id}
-          primary={a.analysis_id}
-          badge={<TypeBadge typeId={a.type_id} />}
-        />
-      ))}
+      {data.map(a => {
+        const tabId = makeTabId('analysis', a.analysis_id)
+        return (
+          <ContextItem
+            key={a.analysis_id}
+            primary={a.analysis_id}
+            badge={<TypeBadge typeId={a.type_id} />}
+            isActive={activeTab === tabId}
+            onClick={() => openTab(tabId)}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -80,6 +133,8 @@ function AnalysesList() {
 
 function RecipesList() {
   const { data, isLoading, isError, error } = useRecipes()
+  const openTab = useTabsStore((s) => s.openTab)
+  const activeTab = useTabsStore(selectActiveTab)
 
   if (isLoading) return <PanelLoading />
   if (isError)   return <PanelError message={(error as Error).message} />
@@ -91,13 +146,18 @@ function RecipesList() {
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <FilterInput placeholder="Filter recipes..." />
-      {data.map(r => (
-        <ContextItem
-          key={r.recipe_id}
-          primary={r.recipe_id}
-          secondary={`${r.analyses.length} step${r.analyses.length === 1 ? '' : 's'}`}
-        />
-      ))}
+      {data.map(r => {
+        const tabId = makeTabId('recipe', r.recipe_id)
+        return (
+          <ContextItem
+            key={r.recipe_id}
+            primary={r.recipe_id}
+            secondary={`${r.analyses.length} step${r.analyses.length === 1 ? '' : 's'}`}
+            isActive={activeTab === tabId}
+            onClick={() => openTab(tabId)}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -113,13 +173,39 @@ function FilterInput({ placeholder }: { placeholder: string }) {
   )
 }
 
-function ContextItem({ primary, secondary, badge }: { primary: string; secondary?: string; badge?: React.ReactNode }) {
+function ContextItem({
+  primary,
+  secondary,
+  badge,
+  isActive,
+  onClick,
+}: {
+  primary: string
+  secondary?: string
+  badge?: React.ReactNode
+  isActive?: boolean
+  onClick?: () => void
+}) {
   return (
     <div
-      className={cn('flex items-center gap-[7px] cursor-pointer px-[10px] py-[5px] transition-colors', 'hover:bg-[var(--color-bg-hover)]')}
+      onClick={onClick}
+      className={cn(
+        'flex items-center gap-[7px] cursor-pointer px-[10px] py-[5px] transition-colors',
+        isActive ? 'bg-[var(--color-bg-hover)]' : 'hover:bg-[var(--color-bg-hover)]',
+      )}
     >
       {badge}
-      <span style={{ flex: 1, fontSize: 13, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <span
+        style={{
+          flex: 1,
+          fontSize: 13,
+          color: isActive ? 'var(--color-text)' : 'var(--color-text-2)',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          fontWeight: isActive ? 500 : 400,
+        }}
+      >
         {primary}
       </span>
       {secondary && (

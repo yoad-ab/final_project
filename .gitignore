@@ -1,10 +1,19 @@
 __pycache__/
-<<<<<<< HEAD
 try.py/
-data/
-docs/
 venv/
-=======
 
 docs/
->>>>>>> 4b77e80d18bc1c621b28dbe2d65901c055ff9da0
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/*.local
+
+# Runtime data
+workspace/
+data/
+
+# Playwright MCP artifacts
+.playwright-mcp/
+*.png

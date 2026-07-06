@@ -1,6 +1,43 @@
+from typing import Any
+
 from pydantic import BaseModel
 
-from ..app.dto import AnalysisDTO, RecipeDTO
+from ..core.analysis import Analysis
+from ..core.recipe import Recipe
+
+
+class FileInfo(BaseModel):
+    name: str
+    size_bytes: int
+    last_modified: float
+
+
+class DataSourceEntry(BaseModel):
+    experiment_id: str
+    data_id: str
+    file_count: int
+    total_size_bytes: int
+    last_modified: float
+
+
+class DataSourceDetail(BaseModel):
+    experiment_id: str
+    data_id: str
+    files: list[FileInfo]
+
+
+class DataSourceCreate(BaseModel):
+    experiment_id: str
+    data_id: str
+
+
+class DataFileContent(BaseModel):
+    too_large: bool
+    size_bytes: int
+    columns: list[str]
+    rows: list[list[Any]]
+    row_count: int
+    truncated: bool
 
 
 class AnalysisCreate(BaseModel):
@@ -19,8 +56,12 @@ class AnalysisOut(BaseModel):
     params: dict
 
     @staticmethod
-    def from_dto(dto: AnalysisDTO) -> "AnalysisOut":
-        return AnalysisOut(analysis_id=dto.analysis_id, type_id=dto.type_id, params=dto.params)
+    def from_analysis(analysis: Analysis) -> "AnalysisOut":
+        return AnalysisOut(
+            analysis_id=analysis.get_analysis_id(),
+            type_id=analysis.get_type_id(),
+            params=analysis.serialize(),
+        )
 
 
 class RecipeCreate(BaseModel):
@@ -37,8 +78,8 @@ class RecipeOut(BaseModel):
     analyses: list[AnalysisOut]
 
     @staticmethod
-    def from_dto(dto: RecipeDTO) -> "RecipeOut":
+    def from_recipe(recipe: Recipe) -> "RecipeOut":
         return RecipeOut(
-            recipe_id=dto.recipe_id,
-            analyses=[AnalysisOut.from_dto(a) for a in dto.analyses],
+            recipe_id=recipe.recipe_id,
+            analyses=[AnalysisOut.from_analysis(a) for a in recipe.analyses],
         )

@@ -1,12 +1,13 @@
-import { LayoutGrid, GitBranch, Search, History } from 'lucide-react'
+import { Database, GitBranch, History, LayoutGrid, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export type SidebarSection = 'analyses' | 'recipes' | 'search' | 'history'
+export type SidebarSection = 'analyses' | 'recipes' | 'data-sources' | 'search' | 'history'
 
 const ITEMS: { id: SidebarSection; icon: React.ReactNode; label: string }[] = [
-  { id: 'analyses', icon: <LayoutGrid size={18} />, label: 'Analyses' },
-  { id: 'recipes',  icon: <GitBranch size={18} />,  label: 'Recipes' },
-  { id: 'search',   icon: <Search size={18} />,      label: 'Search' },
+  { id: 'analyses',     icon: <LayoutGrid size={18} />, label: 'Analyses' },
+  { id: 'recipes',      icon: <GitBranch size={18} />,  label: 'Recipes' },
+  { id: 'data-sources', icon: <Database size={18} />,   label: 'Data Sources' },
+  { id: 'search',       icon: <Search size={18} />,      label: 'Search' },
 ]
 
 const BOTTOM_ITEMS: { id: SidebarSection; icon: React.ReactNode; label: string }[] = [
