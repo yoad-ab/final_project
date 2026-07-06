@@ -13,7 +13,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { DatabaseZap, FileCode2, GitFork, LayoutGrid, Play, Sheet, Upload, X } from 'lucide-react'
+import { FileCode2, GitFork, LayoutGrid, Play, Sheet, Upload, X } from 'lucide-react'
 import {
   useTabsStore,
   makeTabId,
@@ -180,7 +180,6 @@ function SortableTab({ tabId, isActive, onActivate, onClose }: SortableTabProps)
 function TabStrip() {
   const tabs = useTabsStore(selectTabs)
   const activeTab = useTabsStore(selectActiveTab)
-  const openTab = useTabsStore((s) => s.openTab)
   const closeTab = useTabsStore((s) => s.closeTab)
   const setActiveTab = useTabsStore((s) => s.setActiveTab)
   const reorderTabs = useTabsStore((s) => s.reorderTabs)

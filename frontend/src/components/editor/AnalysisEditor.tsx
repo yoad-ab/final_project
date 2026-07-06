@@ -337,7 +337,7 @@ function ExistingAnalysisEditor({ tabId, analysisId }: { tabId: string; analysis
 
   function handleValidate() {
     validateMutation.mutate(
-      { code: currentCode, typeId: data.type_id },
+      { code: currentCode, typeId: data!.type_id },
       {
         onSuccess: (result) => { setValidateResult(result); setValidateModalOpen(true) },
         onError: (err) => { setValidateResult({ valid: false, error: (err as Error).message }); setValidateModalOpen(true) },

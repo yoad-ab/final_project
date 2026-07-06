@@ -17,9 +17,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function P({ children }: { children: React.ReactNode }) {
+function P({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <p style={{ fontSize: 12, lineHeight: 1.65, color: 'var(--color-text-2)', margin: '0 0 8px' }}>
+    <p style={{ fontSize: 12, lineHeight: 1.65, color: 'var(--color-text-2)', margin: '0 0 8px', ...style }}>
       {children}
     </p>
   )
