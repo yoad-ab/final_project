@@ -87,6 +87,40 @@ class ArtifactManager(object):
             raise FileNotFoundError(f"File not found: {path}")
         path.unlink()
 
+    def rename_file(self, experiment_id: str, data_id: str, old_name: str, new_name: str) -> None:
+        dir_path = self._raw_data_path(experiment_id, data_id)
+        old_path = dir_path / old_name
+        new_path = dir_path / new_name
+        if not old_path.exists():
+            raise FileNotFoundError(f"File not found: {old_path}")
+        if new_path.exists():
+            raise FileExistsError(f"File already exists: {new_name!r}")
+        old_path.rename(new_path)
+
+    def rename_data_source(self, experiment_id: str, old_data_id: str, new_data_id: str) -> None:
+        old_path = self._raw_data_path(experiment_id, old_data_id)
+        new_path = self._raw_data_path(experiment_id, new_data_id)
+        if not old_path.exists():
+            raise FileNotFoundError(f"Data source not found: {old_path}")
+        if new_path.exists():
+            raise FileExistsError(f"Data source already exists: {new_data_id!r}")
+        old_path.rename(new_path)
+
+    def rename_experiment(self, old_experiment_id: str, new_experiment_id: str) -> None:
+        old_path = self.base_path / "raw_data" / old_experiment_id
+        new_path = self.base_path / "raw_data" / new_experiment_id
+        if not old_path.exists():
+            raise FileNotFoundError(f"Experiment not found: {old_experiment_id!r}")
+        if new_path.exists():
+            raise FileExistsError(f"Experiment already exists: {new_experiment_id!r}")
+        old_path.rename(new_path)
+
+    def delete_experiment(self, experiment_id: str) -> None:
+        path = self.base_path / "raw_data" / experiment_id
+        if not path.exists():
+            raise FileNotFoundError(f"Experiment not found: {experiment_id!r}")
+        shutil.rmtree(path)
+
     def get_run_directory(self, run_id: str) -> Path:
         """
         Create (if needed) and return the directory for a specific run.

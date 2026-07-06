@@ -75,9 +75,29 @@ class AnalysisOut(BaseModel):
         )
 
 
+class AnalysisRename(BaseModel):
+    analysis_id: str
+
+
 class RecipeCreate(BaseModel):
     recipe_id: str
     analysis_ids: list[str] = []
+
+
+class RecipeRename(BaseModel):
+    recipe_id: str
+
+
+class DataSourceRename(BaseModel):
+    data_id: str
+
+
+class ExperimentRename(BaseModel):
+    experiment_id: str
+
+
+class FileRename(BaseModel):
+    new_name: str
 
 
 class RecipeUpdate(BaseModel):
