@@ -23,8 +23,6 @@ class AnalysisRepository:
         if self.exists(analysis.get_analysis_id()):
             raise FileExistsError(f"Analysis already exists: {analysis.get_analysis_id()!r}. Use update() to overwrite.")
 
-        analysis.verify()
-
         self._write(analysis)
 
     def update(self, analysis: Analysis) -> None:

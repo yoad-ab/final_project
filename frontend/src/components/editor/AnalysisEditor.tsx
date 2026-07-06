@@ -5,6 +5,7 @@ import { useAnalysis, useCreateAnalysis, useUpdateAnalysis, useValidateCode, typ
 import { useDraftsStore, type AnalysisDraft } from '@/store/drafts'
 import { useTabsStore, makeTabId } from '@/store/tabs'
 import { useDirtyStore } from '@/store/dirty'
+import { useThemeStore } from '@/store/theme'
 import { ensureMonacoTheme } from '@/lib/monacoTheme'
 import { AnalysisHintDrawer } from './AnalysisHintDrawer'
 import { LangIcon, PythonIcon, BashIcon } from '@/components/icons/LangIcons'
@@ -287,6 +288,7 @@ function ExistingAnalysisEditor({ tabId, analysisId }: { tabId: string; analysis
   const { data, isLoading, isError, error } = useAnalysis(analysisId)
   const updateMutation = useUpdateAnalysis()
   const validateMutation = useValidateCode()
+  const monacoTheme = useThemeStore((s) => s.theme === 'dark' ? 'pinpoint-dark' : 'pinpoint-light')
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { markDirty, markClean } = useDirtyStore()
 
@@ -377,7 +379,7 @@ function ExistingAnalysisEditor({ tabId, analysisId }: { tabId: string; analysis
             height="100%"
             language={lang}
             beforeMount={beforeMount}
-            theme="pinpoint-dark"
+            theme={monacoTheme}
             defaultValue={serverCode}
             onChange={(v) => setLocalCode(v ?? '')}
             onMount={onMount}
@@ -395,6 +397,7 @@ function ExistingAnalysisEditor({ tabId, analysisId }: { tabId: string; analysis
 function NewAnalysisEditor({ tabId }: { tabId: string }) {
   const { drafts, upsertDraft, removeDraft } = useDraftsStore()
   const draft: AnalysisDraft = drafts[tabId] ?? { analysis_id: '', type_id: 'python', code: '' }
+  const monacoTheme = useThemeStore((s) => s.theme === 'dark' ? 'pinpoint-dark' : 'pinpoint-light')
 
   const createMutation = useCreateAnalysis()
   const validateMutation = useValidateCode()
@@ -507,7 +510,7 @@ function NewAnalysisEditor({ tabId }: { tabId: string }) {
             height="100%"
             language={lang}
             beforeMount={beforeMount}
-            theme="pinpoint-dark"
+            theme={monacoTheme}
             defaultValue={draft.code}
             onChange={(v) => upsertDraft(tabId, { code: v ?? '' })}
             onMount={onMount}

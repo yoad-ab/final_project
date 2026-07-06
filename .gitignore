@@ -23,3 +23,6 @@ run_registry.csv
 # MCP (Yotam's local setup)
 .playwright-mcp/
 *.png
+
+data/
+workspace/

@@ -21,7 +21,7 @@ def run_ui():
 
     print("html path", html_path)
 
-    webview.create_window("Analysis App", str(html_path))
+    webview.create_window("Analysis App", str(html_path), zoomable=True)
     webview.start()
 
     sys.exit(0)
