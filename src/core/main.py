@@ -39,6 +39,16 @@ class AnalysisApp:
         )
         self.analysis_btn.pack(side=tk.RIGHT, padx=20)
 
+        # Leftmost button - opens the Output Tracker window
+        self.history_btn = tk.Button(
+            self.top_frame,
+            text="🕘 Output Tracker",
+            command=self.open_history_window,
+            bg="#fff3e0",
+            font=("Arial", 10, "bold")
+        )
+        self.history_btn.pack(side=tk.RIGHT, padx=20)
+
         # 2. Main content frame (contains list on the left, textbox on the right)
         self.main_content = tk.Frame(self.root)
         self.main_content.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
@@ -188,6 +198,13 @@ class AnalysisApp:
                 command=lambda a=analysis: self.add_analysis_to_list(a)
             )
             btn.pack(pady=5, fill=tk.X, padx=40)
+
+    def open_history_window(self) -> None:
+        """Opens the run history window."""
+        from pathlib import Path
+        from registry_reader import RegistryReader
+        from history_window import HistoryWindow
+        HistoryWindow(self.root, RegistryReader(Path("run_registry.csv")))
 
     def add_analysis_to_list(self, analysis_name: str) -> None:
         """Adds the selected analysis to the listbox and underlying data list.
