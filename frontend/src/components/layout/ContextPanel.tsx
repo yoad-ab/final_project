@@ -2,7 +2,7 @@ import { AlertCircle, Inbox, Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { LangIcon } from '@/components/icons/LangIcons'
 import { useAnalyses, useDeleteAnalysis, useRenameAnalysis } from '@/api/analyses'
-import { useRecipes } from '@/api/recipes'
+import { useDeleteRecipe, useRecipes, useRenameRecipe } from '@/api/recipes'
 import { cn } from '@/lib/utils'
 import { useTabsStore, makeTabId, selectActiveTab } from '@/store/tabs'
 import { DataSourceExplorer } from '@/components/data-sources/DataSourceExplorer'
@@ -277,8 +277,36 @@ function AnalysesList() {
 
 function RecipesList() {
   const { data, isLoading, isError, error } = useRecipes()
-  const openTab = useTabsStore((s) => s.openTab)
+  const openTab   = useTabsStore((s) => s.openTab)
   const activeTab = useTabsStore(selectActiveTab)
+  const deleteMut = useDeleteRecipe()
+  const renameMut = useRenameRecipe()
+
+  const [renameTarget, setRenameTarget] = useState<string | null>(null)
+  const [renameName,   setRenameName]   = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+
+  function openRename(id: string) {
+    setRenameTarget(id)
+    setRenameName(id)
+  }
+
+  function handleRename() {
+    if (!renameTarget || !renameName.trim() || renameName === renameTarget) {
+      setRenameTarget(null)
+      return
+    }
+    renameMut.mutate({ id: renameTarget, newId: renameName.trim() }, {
+      onSuccess: () => setRenameTarget(null),
+    })
+  }
+
+  function handleDelete() {
+    if (!deleteTarget) return
+    deleteMut.mutate(deleteTarget, {
+      onSuccess: () => setDeleteTarget(null),
+    })
+  }
 
   if (isLoading) return <PanelLoading />
   if (isError)   return <PanelError message={(error as Error).message} />
@@ -288,21 +316,110 @@ function RecipesList() {
   }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto' }}>
-      <FilterInput placeholder="Filter recipes..." />
-      {data.map(r => {
-        const tabId = makeTabId('recipe', r.recipe_id)
-        return (
-          <ContextItem
-            key={r.recipe_id}
-            primary={r.recipe_id}
-            secondary={`${r.analyses.length} step${r.analyses.length === 1 ? '' : 's'}`}
-            isActive={activeTab === tabId}
-            onClick={() => openTab(tabId)}
+    <>
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        <FilterInput placeholder="Filter recipes..." />
+        {data.map(r => {
+          const tabId = makeTabId('recipe', r.recipe_id)
+          return (
+            <ContextMenu key={r.recipe_id}>
+              <ContextMenuTrigger asChild>
+                <div>
+                  <ContextItem
+                    primary={r.recipe_id}
+                    secondary={`${r.analyses.length} step${r.analyses.length === 1 ? '' : 's'}`}
+                    isActive={activeTab === tabId}
+                    onClick={() => openTab(tabId)}
+                  />
+                </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem onSelect={() => openRename(r.recipe_id)}>
+                  <Pencil size={13} />
+                  Rename
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem destructive onSelect={() => setDeleteTarget(r.recipe_id)}>
+                  <Trash2 size={13} />
+                  Delete
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
+          )
+        })}
+      </div>
+
+      {/* Rename dialog */}
+      <Dialog open={renameTarget !== null} onOpenChange={(open) => { if (!open) setRenameTarget(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Recipe</DialogTitle>
+            <DialogDescription>Enter a new name for "{renameTarget}".</DialogDescription>
+          </DialogHeader>
+          <input
+            value={renameName}
+            onChange={(e) => setRenameName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleRename()
+              if (e.key === 'Escape') setRenameTarget(null)
+            }}
+            autoFocus
+            style={{
+              width: '100%',
+              background: 'var(--color-bg-surface)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 6,
+              color: 'var(--color-text)',
+              fontSize: 13,
+              padding: '6px 10px',
+              outline: 'none',
+            }}
           />
-        )
-      })}
-    </div>
+          <DialogFooter>
+            <button
+              onClick={handleRename}
+              disabled={renameMut.isPending || !renameName.trim()}
+              style={{ background: 'var(--color-accent)', border: 'none', borderRadius: 5, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, padding: '5px 14px', opacity: renameMut.isPending ? 0.7 : 1 }}
+            >
+              {renameMut.isPending ? 'Renaming…' : 'Rename'}
+            </button>
+            <button
+              onClick={() => setRenameTarget(null)}
+              style={{ background: 'none', border: '1px solid var(--color-border)', borderRadius: 5, color: 'var(--color-text-2)', cursor: 'pointer', fontSize: 13, padding: '5px 14px' }}
+            >
+              Cancel
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Recipe</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{deleteTarget}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              onClick={handleDelete}
+              disabled={deleteMut.isPending}
+              style={{ background: 'var(--color-red)', border: 'none', borderRadius: 5, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, padding: '5px 14px', opacity: deleteMut.isPending ? 0.7 : 1 }}
+            >
+              {deleteMut.isPending ? 'Deleting…' : 'Delete'}
+            </button>
+            <button
+              onClick={() => setDeleteTarget(null)}
+              style={{ background: 'none', border: '1px solid var(--color-border)', borderRadius: 5, color: 'var(--color-text-2)', cursor: 'pointer', fontSize: 13, padding: '5px 14px' }}
+            >
+              Cancel
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 
