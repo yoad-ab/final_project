@@ -19,6 +19,9 @@ export const updateRecipe = (id: string, analysis_ids: string[]) =>
 export const deleteRecipe = (id: string) =>
   apiFetch<void>(`/recipes/${id}`, { method: 'DELETE' })
 
+export const renameRecipe = (id: string, newId: string) =>
+  apiFetch<RecipeDTO>(`/recipes/${id}`, { method: 'PATCH', body: JSON.stringify({ recipe_id: newId }) })
+
 // ── query keys ────────────────────────────────────────────────────────────
 
 export const recipeKeys = {
@@ -68,6 +71,17 @@ export function useDeleteRecipe() {
   return useMutation({
     mutationFn: deleteRecipe,
     onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: recipeKeys.all() })
+      qc.removeQueries({ queryKey: recipeKeys.detail(id) })
+    },
+  })
+}
+
+export function useRenameRecipe() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, newId }: { id: string; newId: string }) => renameRecipe(id, newId),
+    onSuccess: (_data, { id }) => {
       qc.invalidateQueries({ queryKey: recipeKeys.all() })
       qc.removeQueries({ queryKey: recipeKeys.detail(id) })
     },
