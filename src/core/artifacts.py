@@ -1,7 +1,5 @@
 from pathlib import Path
 
-from .analysis import Analysis
-
 
 class ArtifactManager(object):
     def __init__(self, base_path: Path) -> None:
@@ -20,7 +18,17 @@ class ArtifactManager(object):
             raise FileNotFoundError(f"Raw data directory not found: {path}")
         return path
 
-    def get_analysis_output_directory(self, analysis: Analysis) -> Path:
-        path = self.base_path / "output_data" / analysis.get_analysis_id()
+    def get_run_directory(self, run_id: str) -> Path:
+        """
+        Create (if needed) and return the directory for a specific run.
+        """
+
+        path = self.base_path / "runs" / f"run_{run_id}"
         path.mkdir(parents=True, exist_ok=True)
+
         return path
+
+    # def get_analysis_output_directory(self, analysis: Analysis) -> Path:
+    #    path = self.base_path / "output_data" / analysis.get_analysis_id()
+    #    path.mkdir(parents=True, exist_ok=True)
+    #    return path

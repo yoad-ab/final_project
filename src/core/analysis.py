@@ -60,6 +60,12 @@ class AnalysisInput(object):
 
 
 class Analysis(ABC):
+    def __init__(self, analysis_id: str) -> None:
+        self.analysis_id = analysis_id
+
+    def get_analysis_id(self) -> str:
+        return self.analysis_id
+
     @abstractmethod
     def run(self, inp: AnalysisInput) -> AnalysisOutput:
         pass
@@ -72,9 +78,17 @@ class Analysis(ABC):
         pass
 
     @abstractmethod
-    def get_analysis_id(self) -> str:
+    def serialize(self) -> dict:
         """
-        Returns the ID of the specific analysis (not a specific run, e.g. "mri_normalization" or "paired_t_test")
+        Returns a JSON-serializable dict of type-specific params (no type_id or analysis_id).
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def deserialize(cls, analysis_id: str, params: dict) -> "Analysis":
+        """
+        Reconstructs an instance from params produced by serialize(), with analysis_id injected from the envelope.
         """
         pass
 
