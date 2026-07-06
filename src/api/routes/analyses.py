@@ -13,6 +13,7 @@ router = APIRouter(prefix="/analyses", tags=["analyses"])
 
 @router.get("", response_model=list[AnalysisOut])
 def list_analyses(storage: StorageManager = Depends(get_storage)):
+    print("Listing analyses...")
     analyses_list = storage.analyses.list()
     loaded_analyses = [storage.analyses.load(aid) for aid in analyses_list]
     return [AnalysisOut.from_analysis(a) for a in loaded_analyses]
@@ -57,6 +58,7 @@ def validate_code(body: AnalysisValidate):
 
 @router.get("/{analysis_id}", response_model=AnalysisOut)
 def get_analysis(analysis_id: str, storage: StorageManager = Depends(get_storage)):
+    print(f"this")
     analysis = storage.analyses.load(analysis_id)
     return AnalysisOut.from_analysis(analysis)
 

@@ -9,6 +9,11 @@ from .registry import dump, load
 class AnalysisRepository:
     def __init__(self, base_path: Path) -> None:
         self.base_path = base_path
+        if((self._dir() / "predetermined_analyses").exists()):
+            for file in (self._dir() / "predetermined_analyses").glob("*.json"):
+                if(file.name not in [f.name for f in self._dir().glob("*.json")]):
+                    file.rename(file.parent.parent / file.name)
+                    Path(file.parent/file.name).write_bytes(Path(file.parent.parent / file.name).read_bytes())
 
     def _dir(self) -> Path:
         return self.base_path / "analyses"

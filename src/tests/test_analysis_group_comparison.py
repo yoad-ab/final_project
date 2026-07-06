@@ -1,5 +1,5 @@
 import pandas as pd
-from src.core.analysis_group_comparison import run_group_comparison
+from src.storage.workspace.analyses.predetemined_analsis.analysis_group_comparison import run_group_comparison
 
 def test_run_group_comparison_success():
     """

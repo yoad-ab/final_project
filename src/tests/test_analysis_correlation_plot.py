@@ -1,5 +1,5 @@
 import pandas as pd
-from src.core.analysis_correlation_plot import run_correlation_plot
+from src.storage.workspace.analyses.predetemined_analsis.analysis_correlation_plot import run_correlation_plot
 
 def test_run_correlation_plot_success(tmp_path):
     """

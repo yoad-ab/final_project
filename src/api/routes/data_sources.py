@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
-
+#from ..data_loader import load_and_register_dataset
 from ...storage.storage_manager import StorageManager
 from ..deps import get_storage
 from ..models import (
@@ -95,6 +95,7 @@ async def upload_files(
                 status_code=413,
                 detail=f"{filename} exceeds maximum file size of {_MAX_UPLOAD_BYTES // (1024 * 1024)} MB",
             )
+        print(f"Uploading file: {filename} ({len(content)} bytes)")
         storage.artifacts.save_file(exp, did, filename, content)
         saved.append(filename)
 

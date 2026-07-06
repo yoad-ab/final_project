@@ -1,5 +1,5 @@
 import pandas as pd
-from src.core.analysis_range_comparison import run_range_comparison
+from src.storage.workspace.analyses.predetemined_analsis.analysis_range_comparison import run_range_comparison
 
 def test_run_range_comparison_success():
     """

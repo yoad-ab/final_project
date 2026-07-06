@@ -1,5 +1,5 @@
 import pandas as pd
-from src.core.analysis_categorical import run_categorical_distribution
+from src.storage.workspace.analyses.predetemined_analsis.analysis_categorical import run_categorical_distribution
 
 def test_run_categorical_distribution_success():
     """

@@ -1,5 +1,5 @@
 import pandas as pd
-from src.core.analysis_missing_values import run_missing_values_analysis
+from src.storage.workspace.analyses.predetemined_analsis.analysis_missing_values import run_missing_values_analysis
 
 def test_run_missing_values_analysis_success():
     """

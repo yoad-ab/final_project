@@ -1,5 +1,5 @@
 import pandas as pd
-from src.core.analysis_group_box_plot import run_group_box_plot
+from src.storage.workspace.analyses.predetemined_analsis.analysis_group_box_plot import run_group_box_plot
 
 def test_run_group_box_plot_success(tmp_path):
     """

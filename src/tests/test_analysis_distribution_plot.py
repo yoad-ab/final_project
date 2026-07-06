@@ -1,5 +1,5 @@
 import pandas as pd
-from src.core.analysis_distribution_plot import run_distribution_plot
+from src.storage.workspace.analyses.predetemined_analsis.analysis_distribution_plot import run_distribution_plot
 
 def test_run_distribution_plot_success(tmp_path):
     """

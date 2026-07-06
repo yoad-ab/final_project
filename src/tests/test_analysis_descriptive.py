@@ -1,5 +1,5 @@
 import pandas as pd
-from src.core.analysis_descriptive import run_descriptive_summary
+from src.storage.workspace.analyses.predetemined_analsis.analysis_descriptive import run_descriptive_summary
 
 def test_run_descriptive_summary_success():
     """
