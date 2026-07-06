@@ -1,5 +1,5 @@
+from ..storage.artifacts import ArtifactManager
 from .analysis import Analysis, AnalysisInput, AnalysisOutput
-from .artifacts import ArtifactManager
 from .recipe import Recipe
 from pathlib import Path
 

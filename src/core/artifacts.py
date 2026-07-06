@@ -1,7 +1,5 @@
 from pathlib import Path
 
-from .analysis import Analysis
-
 
 class ArtifactManager(object):
     def __init__(self, base_path: Path) -> None:
@@ -30,7 +28,7 @@ class ArtifactManager(object):
 
         return path
 
-    #def get_analysis_output_directory(self, analysis: Analysis) -> Path:
+    # def get_analysis_output_directory(self, analysis: Analysis) -> Path:
     #    path = self.base_path / "output_data" / analysis.get_analysis_id()
     #    path.mkdir(parents=True, exist_ok=True)
     #    return path
