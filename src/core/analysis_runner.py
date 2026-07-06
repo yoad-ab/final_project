@@ -1,15 +1,20 @@
 import logging
-from pathlib import Path
 import shutil
+from pathlib import Path
 
 from .analysis import Analysis, AnalysisInput, AnalysisOutput
 from .artifacts import ArtifactManager
 from .recipe import Recipe
 
+# Logging is a bit messy throughout the project but this works well enough
 _logger = logging.getLogger(__name__)
 
 
 class AnalysisExecutor(object):
+    """
+    Runs analyses in sequence and maintains working directories.
+    """
+
     def __init__(self, artifact_manager: ArtifactManager) -> None:
         self.artifact_manager = artifact_manager
 

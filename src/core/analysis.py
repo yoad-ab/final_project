@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 
+
 class AnalysisCompletionStatus(Enum):
     # I made this an enum because we might want to represent in the feature
     # other statuses like transient/retriable errors, or warnings, or whatever...
@@ -59,6 +60,10 @@ class AnalysisInput(object):
 
 
 class Analysis(ABC):
+    """
+    Things that you can run
+    """
+
     def __init__(self, analysis_id: str) -> None:
         self.analysis_id = analysis_id
 

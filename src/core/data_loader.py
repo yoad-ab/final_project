@@ -1,3 +1,8 @@
+"""
+Originally meant for loading data with a cache implementation so we don't re-run the same
+analysis on the same input file. Abandoned due to lack of time.
+"""
+
 import hashlib
 import shutil
 from pathlib import Path

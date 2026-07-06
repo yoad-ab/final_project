@@ -13,18 +13,16 @@ result is scientifically "good".
 
 import time
 from datetime import datetime
+from typing import cast
+
+from ..storage.run_repository import RunRepository
 
 # avoid a circular import: import RunRepository lazily inside execute_recipe
-from typing import TYPE_CHECKING
-
 from .analysis import AnalysisCompletionStatus, AnalysisOutput
 from .analysis_runner import AnalysisExecutor
 from .artifacts import ArtifactManager
 from .recipe import Recipe
 from .run import RunRecord, RunStatus, StepRecord
-
-if TYPE_CHECKING:
-    from ...storage.run_repository import RunRepository
 
 _SUMMARY_LIMIT = 200
 
@@ -76,7 +74,9 @@ def execute_recipe(
     started_at = datetime.now().isoformat(timespec="seconds")
     steps: list[StepRecord] = []
     overall = RunStatus.SUCCESS
-    prev_output: AnalysisOutput | None = None
+
+    # Illegal but helps with the type check since we know we won't hit this edge case in runtime
+    prev_output: AnalysisOutput = cast(AnalysisOutput, None)
 
     for index, analysis in enumerate(recipe.analyses):
         t0 = time.perf_counter()

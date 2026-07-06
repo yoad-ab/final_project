@@ -1,3 +1,7 @@
+"""
+Writes logs into the working directories of recipe executions for debuggability.
+"""
+
 import logging
 import os
 from datetime import datetime

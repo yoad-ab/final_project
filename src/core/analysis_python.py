@@ -4,6 +4,12 @@ from .analysis import Analysis, AnalysisCompletionStatus, AnalysisInput, Analysi
 
 
 class PythonAnalysis(Analysis):
+    """
+    An implementation of Analysis that runs Python code. Originally supposed to run in a sandbox, but
+    we found that an easier implementation would just be to call exec() and run the code in the context
+    of the same process. Not the safest option but good enough for our use case.
+    """
+
     def __init__(self, analysis_id: str, python_code: str, user_arguments: dict | None = None) -> None:
         super().__init__(analysis_id)
         self.python_code = python_code

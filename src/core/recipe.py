@@ -1,3 +1,8 @@
+"""
+Painfully simple compared to what we thought about at first, a recipe is just a collection of
+analyses that run in sequence in the same directory.
+"""
+
 from .analysis import Analysis
 
 
@@ -12,6 +17,8 @@ class Recipe(object):
         based on analysis output), loops, parallel branches, and other control-flow primitives.
         The data model and executor should be evolved to represent a directed graph of analyses
         rather than a flat list when that work begins.
+
+        (tldr; future versions did not come ._.)
         """
 
         self.recipe_id = recipe_id
