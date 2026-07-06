@@ -9,11 +9,10 @@ import {
 } from '@/components/layout/ContextPanel'
 import type { RunRecord, RunStatus } from '@/types/run'
 
-// Runs are grouped by pipeline. There's no reliable recipe_id on every run
-// yet, so we group by analysis_id as a stand-in — the same decision the
-// Tkinter version made. Flip this one constant to 'recipe_id' the moment the
-// backend attaches a real recipe id to every run; nothing else changes.
-const GROUP_FIELD: keyof RunRecord = 'analysis_id'
+// Runs are grouped by pipeline. Now that runs created by the Run button carry
+// a real recipe_id, we group by that. Older/seed runs without one fall into
+// "(ungrouped)". Change this single constant to repoint the grouping.
+const GROUP_FIELD: keyof RunRecord = 'recipe_id'
 
 const STATUS_COLOR: Record<RunStatus, string> = {
   running:   '#f59e0b',

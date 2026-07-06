@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from './client'
 import type { RunRecord } from '@/types/run'
 
@@ -9,6 +9,9 @@ export const listRuns = () =>
 
 export const getRun = (id: string) =>
   apiFetch<RunRecord>(`/runs/${id}`)
+
+export const runRecipe = (recipeId: string, body: { experiment_id: string; data_id: string }) =>
+  apiFetch<RunRecord>(`/recipes/${recipeId}/run`, { method: 'POST', body: JSON.stringify(body) })
 
 // ── query keys ────────────────────────────────────────────────────────────
 
@@ -31,5 +34,15 @@ export function useRun(id: string) {
     queryKey: historyKeys.detail(id),
     queryFn:  () => getRun(id),
     enabled:  Boolean(id),
+  })
+}
+
+export function useRunRecipe() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ recipeId, experiment_id, data_id }: { recipeId: string; experiment_id: string; data_id: string }) =>
+      runRecipe(recipeId, { experiment_id, data_id }),
+    // A new run was recorded — refresh the History list so it shows up.
+    onSuccess: () => qc.invalidateQueries({ queryKey: historyKeys.all() }),
   })
 }

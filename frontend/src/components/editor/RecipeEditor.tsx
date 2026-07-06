@@ -16,10 +16,12 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import {
   GripVertical, GitFork, FileCode2, Terminal,
-  X, ExternalLink, Plus, Loader2, Check, AlertCircle,
+  X, ExternalLink, Plus, Loader2, Check, AlertCircle, Play, Database,
 } from 'lucide-react'
 import { useRecipe, useCreateRecipe, useUpdateRecipe } from '@/api/recipes'
 import { useAnalyses } from '@/api/analyses'
+import { useRunRecipe } from '@/api/history'
+import { useDataSources } from '@/api/data-sources'
 import { useTabsStore, makeTabId } from '@/store/tabs'
 import type { AnalysisDTO } from '@/types/analysis'
 
@@ -319,6 +321,91 @@ function RecipeCanvas({ steps, allAnalyses, onReorder, onRemove, onInsert }: Can
   )
 }
 
+// ── Run button + dataset picker ─────────────────────────────────────────────
+
+function RunButton({ recipeId, disabled, disabledReason }: { recipeId: string; disabled: boolean; disabledReason?: string }) {
+  const [open, setOpen] = useState(false)
+  const { data: sources = [], isLoading } = useDataSources()
+  const runMutation = useRunRecipe()
+  const openTab = useTabsStore(s => s.openTab)
+
+  function run(experiment_id: string, data_id: string) {
+    runMutation.mutate(
+      { recipeId, experiment_id, data_id },
+      { onSuccess: (created) => { setOpen(false); openTab(makeTabId('run', created.run_id)) } },
+    )
+  }
+
+  const busy = runMutation.isPending
+
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        onClick={() => { if (!disabled && !busy) setOpen(o => !o) }}
+        disabled={disabled || busy}
+        title={disabled ? disabledReason : 'Run this recipe on a dataset'}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 5,
+          padding: '4px 10px', borderRadius: 4, border: 'none',
+          fontSize: 12, fontWeight: 500,
+          cursor: (disabled || busy) ? 'default' : 'pointer',
+          background: (disabled || busy) ? 'var(--color-bg-hover)' : 'rgba(245,158,11,0.18)',
+          color: (disabled || busy) ? 'var(--color-text-3)' : '#f59e0b',
+        }}
+      >
+        {busy ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} strokeWidth={2.5} />}
+        {busy ? 'Running…' : 'Run'}
+      </button>
+
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+          <div style={{
+            position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 41,
+            width: 260, background: 'var(--color-bg-panel)', border: '1px solid var(--color-border)',
+            borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.45)', overflow: 'hidden',
+          }}>
+            <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--color-border)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-3)' }}>
+              Run on dataset
+            </div>
+            <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+              {isLoading ? (
+                <div style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-text-3)', fontSize: 12 }}>
+                  <Loader2 size={13} className="animate-spin" /> Loading…
+                </div>
+              ) : sources.length === 0 ? (
+                <div style={{ padding: '12px 14px', fontSize: 12, color: 'var(--color-text-3)' }}>
+                  No data sources. Add one in the Data Sources panel first.
+                </div>
+              ) : sources.map(s => (
+                <div
+                  key={`${s.experiment_id}/${s.data_id}`}
+                  onClick={() => run(s.experiment_id, s.data_id)}
+                  className="add-step-option"
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', cursor: 'pointer' }}
+                >
+                  <Database size={13} style={{ color: 'var(--color-text-3)', flexShrink: 0 }} />
+                  <span style={{ flex: 1, fontSize: 13, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {s.experiment_id} / {s.data_id}
+                  </span>
+                  <span style={{ fontSize: 10, color: 'var(--color-text-3)', flexShrink: 0 }}>
+                    {s.file_count} file{s.file_count === 1 ? '' : 's'}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {runMutation.isError && (
+              <div style={{ padding: '8px 12px', borderTop: '1px solid var(--color-border)', fontSize: 11, color: 'var(--color-red)' }}>
+                {(runMutation.error as Error).message}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ── Header ─────────────────────────────────────────────────────────────────
 
 interface HeaderProps {
@@ -331,9 +418,10 @@ interface HeaderProps {
   canSave?: boolean
   onSave: () => void
   saveLabel?: string
+  extra?: React.ReactNode
 }
 
-function RecipeHeader({ titleNode, stepCount, isDirty, isSaving, saveOk, saveError, canSave = true, onSave, saveLabel = 'Save' }: HeaderProps) {
+function RecipeHeader({ titleNode, stepCount, isDirty, isSaving, saveOk, saveError, canSave = true, onSave, saveLabel = 'Save', extra }: HeaderProps) {
   const saveDisabled = isSaving || !canSave || (!isDirty && saveLabel === 'Save')
 
   return (
@@ -347,6 +435,8 @@ function RecipeHeader({ titleNode, stepCount, isDirty, isSaving, saveOk, saveErr
       <span style={{ fontSize: 11, color: 'var(--color-text-3)', flexShrink: 0 }}>
         {stepCount} step{stepCount !== 1 ? 's' : ''}
       </span>
+
+      {extra}
 
       {saveError && (
         <span style={{ fontSize: 11, color: 'var(--color-red)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -468,6 +558,17 @@ function ExistingRecipeEditor({ tabId, recipeId }: { tabId: string; recipeId: st
         saveOk={saveOk}
         saveError={updateMutation.isError ? (updateMutation.error as Error).message : undefined}
         onSave={handleSave}
+        extra={
+          <RunButton
+            recipeId={recipeId}
+            disabled={isDirty || steps.length === 0}
+            disabledReason={
+              isDirty ? 'Save your changes before running'
+              : steps.length === 0 ? 'Add at least one step to run'
+              : undefined
+            }
+          />
+        }
       />
       <RecipeCanvas
         steps={steps}

@@ -86,6 +86,11 @@ class RecipeOut(BaseModel):
         )
 
 
+class RunCreate(BaseModel):
+    experiment_id: str
+    data_id: str
+
+
 class StepOut(BaseModel):
     step_index: int
     analysis_id: str
