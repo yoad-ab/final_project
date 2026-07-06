@@ -3,12 +3,13 @@ import os
 from pathlib import Path
 
 from ..core.recipe import Recipe
-from .registry import dump, load
+from .analysis_repository import AnalysisRepository
 
 
 class RecipeRepository:
-    def __init__(self, base_path: Path) -> None:
+    def __init__(self, base_path: Path, analyses: AnalysisRepository) -> None:
         self.base_path = base_path
+        self._analyses = analyses
 
     def _dir(self) -> Path:
         return self.base_path / "recipes"
@@ -34,7 +35,9 @@ class RecipeRepository:
         if not path.exists():
             raise FileNotFoundError(f"Recipe not found: {recipe_id!r}")
         d = json.loads(path.read_text(encoding="utf-8"))
-        return Recipe(d["recipe_id"], [load(a) for a in d["analyses"]])
+        analysis_ids = self._extract_ids(d)
+        analyses = [self._analyses.load(aid) for aid in analysis_ids]
+        return Recipe(d["recipe_id"], analyses)
 
     def rename(self, old_id: str, new_id: str) -> "Recipe":
         old_path = self._path(old_id)
@@ -59,10 +62,28 @@ class RecipeRepository:
             return []
         return sorted(p.stem for p in self._dir().glob("*.json"))
 
+    def list_analysis_ids(self, recipe_id: str) -> list[str]:
+        """Return the stored analysis ID list without resolving analyses from disk."""
+        path = self._path(recipe_id)
+        if not path.exists():
+            raise FileNotFoundError(f"Recipe not found: {recipe_id!r}")
+        return self._extract_ids(json.loads(path.read_text(encoding="utf-8")))
+
     def _write(self, recipe: Recipe) -> None:
         self._dir().mkdir(parents=True, exist_ok=True)
         path = self._path(recipe.recipe_id)
         tmp = path.with_suffix(".json.tmp")
-        d = {"recipe_id": recipe.recipe_id, "analyses": [dump(a) for a in recipe.analyses]}
+        d = {
+            "recipe_id": recipe.recipe_id,
+            "analysis_ids": [a.get_analysis_id() for a in recipe.analyses],
+        }
         tmp.write_text(json.dumps(d, indent=2), encoding="utf-8")
         os.replace(tmp, path)
+
+    @staticmethod
+    def _extract_ids(d: dict) -> list[str]:
+        """Support both the new format (analysis_ids list) and the old embedded format."""
+        if "analysis_ids" in d:
+            return d["analysis_ids"]
+        # Legacy format: analyses were stored as full objects with an analysis_id field.
+        return [a["analysis_id"] for a in d.get("analyses", [])]

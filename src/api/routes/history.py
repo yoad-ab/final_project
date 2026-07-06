@@ -1,3 +1,4 @@
+import subprocess
 from fastapi import APIRouter, Depends
 
 from ...storage.storage_manager import StorageManager
@@ -23,3 +24,10 @@ def list_runs(storage: StorageManager = Depends(get_storage)):
 def get_run(run_id: str, storage: StorageManager = Depends(get_storage)):
     run = storage.runs.load(run_id)
     return RunOut.from_record(run, _output_path(storage, run.run_id))
+
+
+@router.post("/{run_id}/open-output", status_code=204)
+def open_output(run_id: str, storage: StorageManager = Depends(get_storage)):
+    """Open the run's output folder in Windows Explorer."""
+    path = storage.artifacts.run_directory(run_id).resolve()
+    subprocess.Popen(["explorer", str(path)])

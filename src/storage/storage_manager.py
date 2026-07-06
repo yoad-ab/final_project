@@ -23,6 +23,6 @@ class StorageManager:
 
     def __init__(self, base_path: Path = Path("./")) -> None:
         self.analyses = AnalysisRepository(base_path)
-        self.recipes = RecipeRepository(base_path)
+        self.recipes = RecipeRepository(base_path, self.analyses)
         self.runs = RunRepository(base_path)
         self.artifacts = ArtifactManager(base_path / "data")

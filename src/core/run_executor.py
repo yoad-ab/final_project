@@ -12,7 +12,6 @@ result is scientifically "good".
 """
 
 import time
-import uuid
 from datetime import datetime
 
 from .analysis import AnalysisCompletionStatus, AnalysisOutput
@@ -21,17 +20,28 @@ from .artifacts import ArtifactManager
 from .recipe import Recipe
 from .run import RunRecord, RunStatus, StepRecord
 
+# avoid a circular import: import RunRepository lazily inside execute_recipe
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from ...storage.run_repository import RunRepository
+
 _SUMMARY_LIMIT = 200
 
 
-def _new_run_id() -> str:
-    """Timestamp + short random suffix.
+def _new_run_id(existing_ids: list[str]) -> str:
+    """Sequential integer run ID, one higher than the current maximum.
 
     Deliberately NOT prefixed with 'run_': ArtifactManager.get_run_directory
     already prepends 'run_' when it creates the output folder, so prefixing
     here would produce a doubled 'run_run_' path.
     """
-    return datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:4]
+    max_id = 0
+    for rid in existing_ids:
+        try:
+            max_id = max(max_id, int(rid))
+        except ValueError:
+            pass
+    return str(max_id + 1)
 
 
 def _summarize(output: AnalysisOutput) -> str | None:
@@ -49,6 +59,7 @@ def execute_recipe(
     experiment_id: str,
     data_id: str,
     artifacts: ArtifactManager,
+    run_repo: "RunRepository | None" = None,
 ) -> RunRecord:
     """Run every analysis in the recipe in order, recording each step.
 
@@ -57,7 +68,8 @@ def execute_recipe(
     is recorded either way, so the History view shows exactly where it stopped.
     """
     executor = AnalysisExecutor(artifacts)
-    run_id = _new_run_id()
+    existing_ids = run_repo.list() if run_repo is not None else []
+    run_id = _new_run_id(existing_ids)
     run_folder = artifacts.get_run_directory(run_id)  # creates workspace/data/runs/run_<id>
 
     started_at = datetime.now().isoformat(timespec="seconds")

@@ -116,6 +116,14 @@ class RecipeOut(BaseModel):
             analyses=[AnalysisOut.from_analysis(a) for a in recipe.analyses],
         )
 
+    @staticmethod
+    def from_ids(recipe_id: str, analysis_ids: list[str]) -> "RecipeOut":
+        """Lightweight constructor used for listing — no analysis code loaded."""
+        return RecipeOut(
+            recipe_id=recipe_id,
+            analyses=[AnalysisOut(analysis_id=aid, type_id="python", params={}) for aid in analysis_ids],
+        )
+
 
 class RunCreate(BaseModel):
     experiment_id: str

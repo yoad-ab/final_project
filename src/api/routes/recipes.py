@@ -11,7 +11,11 @@ router = APIRouter(prefix="/recipes", tags=["recipes"])
 
 @router.get("", response_model=list[RecipeOut])
 def list_recipes(storage: StorageManager = Depends(get_storage)):
-    return [RecipeOut.from_recipe(storage.recipes.load(rid)) for rid in storage.recipes.list()]
+    results = []
+    for rid in storage.recipes.list():
+        ids = storage.recipes.list_analysis_ids(rid)
+        results.append(RecipeOut.from_ids(rid, ids))
+    return results
 
 
 @router.post("", response_model=RecipeOut, status_code=status.HTTP_201_CREATED)
@@ -63,7 +67,7 @@ def run_recipe(recipe_id: str, body: RunCreate, storage: StorageManager = Depend
     recipe = storage.recipes.load(recipe_id)  # 404 if missing
     if not recipe.analyses:
         raise ValueError("Recipe has no steps to run.")  # -> 422
-    run = execute_recipe(recipe, body.experiment_id, body.data_id, storage.artifacts)
+    run = execute_recipe(recipe, body.experiment_id, body.data_id, storage.artifacts, storage.runs)
     storage.runs.save(run)
     output_path = str(storage.artifacts.run_directory(run.run_id).resolve())
     return RunOut.from_record(run, output_path)

@@ -13,6 +13,9 @@ export const getRun = (id: string) =>
 export const runRecipe = (recipeId: string, body: { experiment_id: string; data_id: string }) =>
   apiFetch<RunRecord>(`/recipes/${recipeId}/run`, { method: 'POST', body: JSON.stringify(body) })
 
+export const openRunOutput = (runId: string) =>
+  apiFetch<void>(`/runs/${runId}/open-output`, { method: 'POST' })
+
 // ── query keys ────────────────────────────────────────────────────────────
 
 export const historyKeys = {
