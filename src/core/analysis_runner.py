@@ -1,4 +1,5 @@
 from pathlib import Path
+import shutil
 
 from .analysis import Analysis, AnalysisInput, AnalysisOutput
 from .artifacts import ArtifactManager
@@ -31,8 +32,14 @@ class AnalysisExecutor(object):
         return analysis_output
 
     def run_recipe(self, recipe: Recipe, experiment_id: str, data_id: str, run_folder: Path) -> AnalysisOutput:
-        # 1. copy all files from raw data dir (get_raw_data_directory?) -> run_folder
-        # 2. run all analyses in run folder
+        # get raw data
+        raw_data_dir = self.artifact_manager.get_raw_data_directory(experiment_id, data_id)
+        # copy raw data into run folder
+        for item in raw_data_dir.iterdir():
+            if item.is_file():
+                shutil.copy2(item, run_folder / item.name)
+            elif item.is_dir():
+                shutil.copytree(item, run_folder / item.name, dirs_exist_ok=True)
 
         first_analysis, *rest_of_recipe = recipe.analyses
 
