@@ -1,9 +1,12 @@
+import logging
 from pathlib import Path
 import shutil
 
 from .analysis import Analysis, AnalysisInput, AnalysisOutput
 from .artifacts import ArtifactManager
 from .recipe import Recipe
+
+_logger = logging.getLogger(__name__)
 
 
 class AnalysisExecutor(object):
@@ -46,8 +49,8 @@ class AnalysisExecutor(object):
         output = self.run_analysis_on_data(first_analysis, experiment_id, data_id, run_folder)
 
         for analysis in rest_of_recipe:
-            print("[+] Output is", output)
+            _logger.info("Intermediate output: %s", output)
             output = self.run_analysis_on_output(analysis, output, run_folder)
 
-        print("[+] Final output is", output)
+        _logger.info("Final output: %s", output)
         return output

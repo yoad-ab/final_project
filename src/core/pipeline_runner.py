@@ -13,7 +13,6 @@ from .registry_manager import generate_run_id, update_run_registry
 def update_run_history(
     history_path: Path, run_id: str, start_time: str, end_time: str, dataset: str, analyses: list, status: str, run_path: str
 ):
-    print("update_run_history", history_path)
     file_exists = os.path.isfile(history_path)
 
     with open(history_path, mode="a", newline="") as f:
@@ -30,7 +29,6 @@ def run_pipeline(selected_analyses, artifact_manager: ArtifactManager, experimen
     executor = AnalysisExecutor(artifact_manager)
 
     run_id = generate_run_id(artifact_manager.get_history_log_path())
-    print("Run id", run_id)
     run_folder = artifact_manager.get_run_directory(run_id)
     registry_path = run_folder / "run_registry.csv"
 
