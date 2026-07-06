@@ -8,6 +8,8 @@ class ArtifactManager(object):
 
     def _raw_data_path(self, experiment_id: str, data_id: str) -> Path:
         return self.base_path / "raw_data" / experiment_id / data_id
+    def get_history_log_path(self) -> Path:
+        return self.base_path / "run_history.log"
 
     def get_raw_data_directory(self, experiment_id: str, data_id: str) -> Path:
         """

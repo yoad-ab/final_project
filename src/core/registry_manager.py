@@ -1,5 +1,6 @@
 import csv
 import os
+from datetime import datetime
 
 def generate_run_id(registry_file="run_registry.csv"):
     """
@@ -32,14 +33,10 @@ def generate_run_id(registry_file="run_registry.csv"):
 
 
 def update_run_registry(
-    registry_path,
-    run_id,
-    start_time,
-    end_time,
-    dataset,
-    analysis,
-    status,
-    run_path
+    registry_path: str,
+    run_id: str,
+    event_type: str,
+    message: str
 ):
 
     file_exists = os.path.isfile(registry_path)
@@ -49,21 +46,15 @@ def update_run_registry(
 
         if not file_exists:
             writer.writerow([
+                "timestamp",
                 "run_id",
-                "start_time",
-                "end_time",
-                "dataset",
-                "analysis",
-                "status",
-                "run_path"
+                "event_type",
+                "message"
             ])
 
         writer.writerow([
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             run_id,
-            start_time,
-            end_time,
-            dataset,
-            analysis,
-            status,
-            run_path
+            event_type,
+            message
         ])
