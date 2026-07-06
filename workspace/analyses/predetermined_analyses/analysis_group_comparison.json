@@ -1,0 +1,7 @@
+{
+  "type_id": "python",
+  "analysis_id": "analysis_group_comparison",
+  "data": {
+    "python_code": "import pandas as pd\n\ndef run_group_comparison(df: pd.DataFrame, group_column: str, value_column: str, agg_metric: str = \"mean\") -> pd.DataFrame:\n    \"\"\"\n    Groups the DataFrame by a categorical column and calculates a specific \n    statistical metric (e.g., mean, median, std) for a numerical column.\n    \"\"\"\n    if df is None or df.empty:\n        print(\"Warning: Provided DataFrame is empty.\")\n        return pd.DataFrame()\n\n    if group_column not in df.columns:\n        print(f\"Error: Group column '{group_column}' does not exist in the DataFrame.\")\n        return pd.DataFrame()\n\n    if value_column not in df.columns:\n        print(f\"Error: Value column '{value_column}' does not exist in the DataFrame.\")\n        return pd.DataFrame()\n\n    try:\n        # Perform the groupby and aggregate using the specified metric\n        grouped_df = df.groupby(group_column)[value_column].agg(agg_metric).to_frame()\n        \n        # Rename the result column to clearly show what metric was calculated\n        grouped_df.columns = [f\"{value_column}_{agg_metric}\"]\n        return grouped_df\n\n    except Exception as e:\n        print(f\"Error during groupby calculation. Details: {e}\")\n        return pd.DataFrame()"
+  }
+}

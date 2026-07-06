@@ -1,0 +1,7 @@
+{
+  "type_id": "python",
+  "analysis_id": "analysis_missing_values",
+  "data": {
+    "python_code": "import pandas as pd\n\ndef run_missing_values_analysis(df: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"\n    Scans the DataFrame to detect and report the count and percentage \n    of missing values (NaN) for each column.\n    \"\"\"\n    if df is None or df.empty:\n        print(\"Warning: Provided DataFrame is empty.\")\n        return pd.DataFrame()\n        \n    # Count the number of missing values per column\n    missing_count = df.isna().sum()\n    \n    # Calculate the percentage of missing values based on total rows\n    missing_percentage = (missing_count / len(df)) * 100\n    \n    # Combine the results into a single reporting DataFrame\n    missing_df = pd.DataFrame({\n        'Missing Count': missing_count,\n        'Percentage Missing (%)': missing_percentage\n    })\n    \n    # Sort the table from the most missing column to the least missing column\n    missing_df = missing_df.sort_values(by='Missing Count', ascending=False)\n    \n    return missing_df"
+  }
+}

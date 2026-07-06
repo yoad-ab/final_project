@@ -1,0 +1,7 @@
+{
+  "type_id": "python",
+  "analysis_id": "analysis_descriptive",
+  "data": {
+    "python_code": "import pandas as pd\n\ndef run_descriptive_summary(df: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"\n    Generates a quick statistical summary (mean, std, min, max, quartiles)\n    for all numerical columns in the DataFrame using df.describe().\n    \"\"\"\n    if df is None or df.empty:\n        print(\"Warning: Provided DataFrame is empty. Cannot generate summary.\")\n        return pd.DataFrame()\n        \n    # Execute describe and return the statistical summary table\n    summary_df = df.describe()\n    return summary_df"
+  }
+}
